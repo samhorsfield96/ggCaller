@@ -1,0 +1,620 @@
+Building coloured compacted DBG...
+Generating graph stop codon index...
+Loading gene models...
+Generating high scoring ORF calls...
+Generating fasta file of gene calls...
+Finished.
+Filename: /mnt/c/Users/sth19/PycharmProjects/Genome_Graph_project/ggCaller/balrog/__main__.py
+
+Line #    Mem usage    Increment  Occurences   Line Contents
+============================================================
+   114  383.953 MiB 442340.621 MiB        1204   @profile
+   115                                         def tokenize_aa_seq(aa_seq):
+   116                                             """ Convert amino acid letters to integers."""
+   117  383.953 MiB    0.086 MiB      135864       tokenized = torch.tensor([aa_table[aa] for aa in aa_seq])
+   118  383.953 MiB    0.000 MiB        1204       return tokenized
+
+
+Filename: /mnt/c/Users/sth19/PycharmProjects/Genome_Graph_project/ggCaller/balrog/__main__.py
+
+Line #    Mem usage    Increment  Occurences   Line Contents
+============================================================
+   121  383.867 MiB 1815.766 MiB           5   @profile
+   122                                         def get_ORF_info(ORF_vector, graph, overlap):
+   123  383.867 MiB    0.000 MiB           5       ORF_seq_list = []
+   124  383.867 MiB    0.000 MiB           5       TIS_seqs = []
+   125                                             # iterate over list of ORFs
+   126  383.930 MiB    0.023 MiB        1209       for ORFNodeVector in ORF_vector:
+   127                                                 # need to determine ORF sequences from paths
+   128  383.930 MiB    0.000 MiB        1204           ORF_nodelist = ORFNodeVector[0]
+   129  383.930 MiB    0.000 MiB        1204           ORF_node_coords = ORFNodeVector[1]
+   130  383.930 MiB    0.000 MiB        1204           TIS_nodelist = ORFNodeVector[3]
+   131  383.930 MiB    0.000 MiB        1204           TIS_node_coords = ORFNodeVector[4]
+   132                                         
+   133                                                 # generate ORF_seq, as well as upstream and downstream TIS seq
+   134  383.930 MiB    0.051 MiB        1204           ORF_seq = graph.generate_sequence(ORF_nodelist, ORF_node_coords, overlap)
+   135  383.930 MiB    0.020 MiB        1204           upstream_TIS_seq = graph.generate_sequence(TIS_nodelist, TIS_node_coords, overlap)
+   136  383.930 MiB    0.020 MiB        1204           downstream_TIS_seq = ORF_seq[0:19]
+   137                                         
+   138                                                 # generate Seq class for translation
+   139  383.930 MiB    0.016 MiB        1204           seq = Seq(ORF_seq)
+   140                                         
+   141                                                 # translate once per frame, then slice. Note, do not include start or stop codons
+   142  383.930 MiB    0.164 MiB        1204           aa = str(seq[3:-3].translate(table=translation_table, to_stop=False))
+   143                                         
+   144  383.930 MiB    0.027 MiB        1204           ORF_seq_list.append(aa)
+   145  383.930 MiB    0.000 MiB        1204           TIS_seqs.append((upstream_TIS_seq, downstream_TIS_seq))
+   146                                         
+   147                                             # convert amino acids into integers
+   148  383.953 MiB 442340.707 MiB        1219       ORF_seq_enc = [tokenize_aa_seq(x) for x in ORF_seq_list]
+   149                                         
+   150  383.953 MiB    0.000 MiB           5       return ORF_seq_enc, TIS_seqs
+
+
+Filename: /mnt/c/Users/sth19/PycharmProjects/Genome_Graph_project/ggCaller/balrog/__main__.py
+
+Line #    Mem usage    Increment  Occurences   Line Contents
+============================================================
+   153  383.953 MiB 3352.703 MiB           9   @profile
+   154                                         def predict(model, X):
+   155  383.953 MiB    0.000 MiB           9       model.eval()
+   156  383.953 MiB    0.000 MiB           9       with torch.no_grad():
+   157  383.953 MiB    0.000 MiB           9           if torch.cuda.device_count() > 0:
+   158                                                     X_enc = F.one_hot(X, 21).permute(0, 2, 1).float().cuda()
+   159                                                     probs = expit(model(X_enc).cpu())
+   160                                                     del X_enc
+   161                                                     torch.cuda.empty_cache()
+   162                                                 else:
+   163  383.953 MiB    7.703 MiB           9               X_enc = F.one_hot(X, 21).permute(0, 2, 1).float()
+   164  389.445 MiB   99.418 MiB           9               probs = expit(model(X_enc).cpu())
+   165                                         
+   166  389.445 MiB  -45.184 MiB           9       return probs
+
+
+Filename: /mnt/c/Users/sth19/PycharmProjects/Genome_Graph_project/ggCaller/balrog/__main__.py
+
+Line #    Mem usage    Increment  Occurences   Line Contents
+============================================================
+   169  383.953 MiB 1917.320 MiB           5   @profile
+   170                                         def predict_tis(model_tis, X):
+   171  383.953 MiB    0.000 MiB           5       model_tis.eval()
+   172  383.953 MiB    0.000 MiB           5       with torch.no_grad():
+   173  383.953 MiB    0.000 MiB           5           if torch.cuda.device_count() > 0:
+   174                                                     X_enc = F.one_hot(X, 4).permute(0, 2, 1).float().cuda()
+   175                                                 else:
+   176  383.953 MiB    0.000 MiB           5               X_enc = F.one_hot(X, 4).permute(0, 2, 1).float()
+   177  383.953 MiB    0.027 MiB           5           probs = expit(model_tis(X_enc).cpu())
+   178  383.953 MiB    0.000 MiB           5       return probs
+
+
+Filename: /mnt/c/Users/sth19/PycharmProjects/Genome_Graph_project/ggCaller/balrog/__main__.py
+
+Line #    Mem usage    Increment  Occurences   Line Contents
+============================================================
+   229  383.867 MiB 1815.766 MiB           5   @profile
+   230                                         def score_genes(ORF_vector, graph_vector, minimum_ORF_score, overlap, model, model_tis, aa_kmer_set):
+   231                                             # get sequences and coordinates of ORFs
+   232                                             # print("Finding and translating open reading frames...")
+   233                                         
+   234  383.953 MiB 1816.180 MiB           5       ORF_seq_enc, TIS_seqs = get_ORF_info(ORF_vector, graph_vector, overlap)
+   235                                         
+   236                                             # seengene check
+   237  383.953 MiB    0.000 MiB           5       if protein_kmer_filter:
+   238                                                 seengene = []
+   239                                                 for s in ORF_seq_enc:
+   240                                                     kmerset = kmerize(s, k_seengene)
+   241                                                     # s = [x in aa_kmer_set for x in kmerset]
+   242                                                     s = np.isin(list(kmerset), aa_kmer_set)
+   243                                                     seen = np.count_nonzero(s) >= multimer_threshold
+   244                                                     seengene.append(seen)
+   245                                         
+   246                                             # score
+   247                                             # print("Scoring ORFs with temporal convolutional network...")
+   248                                         
+   249                                             # sort by length to minimize impact of batch padding
+   250  383.953 MiB    0.000 MiB        1219       ORF_lengths = np.asarray([len(x) for x in ORF_seq_enc])
+   251  383.953 MiB    0.016 MiB           5       length_idx = np.argsort(ORF_lengths)
+   252  383.953 MiB    0.000 MiB        1219       ORF_seq_sorted = [ORF_seq_enc[i] for i in length_idx]
+   253                                         
+   254                                             # pad to allow creation of batch matrix
+   255  383.953 MiB    0.000 MiB           5       prob_list = []
+   256  383.953 MiB    0.000 MiB          14       for i in range(0, len(ORF_seq_sorted), gene_batch_size):
+   257  383.953 MiB    0.000 MiB           9           batch = ORF_seq_sorted[i:i + gene_batch_size]
+   258  383.953 MiB    0.000 MiB           9           seq_lengths = torch.LongTensor(list(map(len, batch)))
+   259  383.953 MiB    1.293 MiB           9           seq_tensor = torch.zeros((len(batch), seq_lengths.max())).long()
+   260                                         
+   261  383.953 MiB    0.035 MiB        1213           for idx, (seq, seqlen) in enumerate(zip(batch, seq_lengths)):
+   262  383.953 MiB    0.055 MiB        1204               seq_tensor[idx, :seqlen] = torch.LongTensor(seq)
+   263                                         
+   264  383.953 MiB 3452.301 MiB           9           pred_all = predict(model, seq_tensor)
+   265                                         
+   266  383.953 MiB    0.000 MiB           9           pred = []
+   267  383.953 MiB    0.000 MiB        1213           for j, length in enumerate(seq_lengths):
+   268  383.953 MiB    0.000 MiB        1204               subseq = pred_all[j, 0, 0:int(length)]
+   269  383.953 MiB    0.125 MiB        1204               predprob = float(expit(torch.mean(logit(subseq))))
+   270  383.953 MiB    0.000 MiB        1204               pred.append(predprob)
+   271                                         
+   272  383.953 MiB    0.000 MiB           9           prob_list.extend(pred)
+   273  383.953 MiB    0.000 MiB           5       prob_arr = np.asarray(prob_list, dtype=float)
+   274                                         
+   275                                             # unsort
+   276  383.953 MiB    0.000 MiB           5       unsort_idx = np.argsort(length_idx)
+   277  383.953 MiB    0.004 MiB           5       ORF_prob = prob_arr[unsort_idx]
+   278                                         
+   279                                             # recombine ORFs
+   280  383.953 MiB    0.000 MiB           5       idx = 0
+   281  383.953 MiB    0.000 MiB           5       ORF_gene_score = [None] * len(ORF_seq_enc)
+   282  383.953 MiB    0.000 MiB        1209       for k, coord in enumerate(ORF_gene_score):
+   283  383.953 MiB    0.000 MiB        1204           ORF_gene_score[k] = float(ORF_prob[idx])
+   284  383.953 MiB    0.000 MiB        1204           idx += 1
+   285                                         
+   286                                             # print("Scoring translation initiation sites...")
+   287                                         
+   288                                             # extract nucleotide sequence surrounding potential start codons
+   289  383.953 MiB    0.000 MiB           5       ORF_TIS_seq_flat = []
+   290  383.953 MiB    0.000 MiB           5       ORF_TIS_seq_idx = []
+   291  383.953 MiB    0.000 MiB           5       ORF_TIS_prob = [None] * len(TIS_seqs)
+   292  383.953 MiB    0.000 MiB           5       ORF_start_codon = [None] * len(ORF_seq_enc)
+   293                                         
+   294  383.953 MiB    0.000 MiB        1209       for i, TIS in enumerate(TIS_seqs):
+   295                                                 # unpack tuple. Note, downsteam includes start codon, which needs to be removed
+   296  383.953 MiB    0.000 MiB        1204           upstream, downstream = TIS
+   297  383.953 MiB    0.000 MiB        1204           if len(upstream) == 16:
+   298  383.953 MiB    0.000 MiB       21492               TIS_seq = torch.tensor([nuc_encode[c] for c in (upstream + downstream[3:])[::-1]],
+   299  383.953 MiB    0.000 MiB         597                                      dtype=int)  # model scores 3' to 5' direction
+   300  383.953 MiB    0.000 MiB         597               ORF_TIS_seq_flat.append(TIS_seq)
+   301  383.953 MiB    0.000 MiB         597               ORF_TIS_seq_idx.append(i)
+   302                                                 else:
+   303  383.953 MiB    0.000 MiB         607               ORF_TIS_prob[i] = 0.5
+   304                                         
+   305                                                 # encode start codon
+   306  383.953 MiB    0.000 MiB        1204           start_codon = start_enc[downstream[0:3]]
+   307  383.953 MiB    0.000 MiB        1204           ORF_start_codon[i] = start_codon
+   308                                         
+   309                                             # batch score TIS
+   310  383.953 MiB    0.000 MiB           5       TIS_prob_list = []
+   311  383.953 MiB    0.000 MiB          10       for i in range(0, len(ORF_TIS_seq_flat), TIS_batch_size):
+   312  383.953 MiB    0.000 MiB           5           batch = ORF_TIS_seq_flat[i:i + TIS_batch_size]
+   313  383.953 MiB    0.016 MiB           5           TIS_stacked = torch.stack(batch)
+   314  383.953 MiB 1917.352 MiB           5           pred = predict_tis(model_tis, TIS_stacked)
+   315                                         
+   316  383.953 MiB    0.004 MiB           5           TIS_prob_list.extend(pred)
+   317  383.953 MiB    0.000 MiB           5       y_pred_TIS = np.asarray(TIS_prob_list, dtype=float)
+   318                                         
+   319                                             # reindex batched scores
+   320  383.953 MiB    0.000 MiB         602       for i, prob in enumerate(y_pred_TIS):
+   321  383.953 MiB    0.000 MiB         597           idx = ORF_TIS_seq_idx[i]
+   322  383.953 MiB    0.000 MiB         597           ORF_TIS_prob[idx] = float(prob)
+   323                                         
+   324                                             # combine all info into single score for each ORF
+   325  383.953 MiB    0.000 MiB           5       if protein_kmer_filter:
+   326                                                 ORF_score_flat = []
+   327                                                 for i, geneprob in enumerate(ORF_gene_score):
+   328                                                     if not geneprob:
+   329                                                         ORF_score_flat.append(None)
+   330                                                         continue
+   331                                                     seengene_idx = 0
+   332                                                     # calculate length by multiplying number of amino acids by 3, then adding 6 for start and stop
+   333                                                     length = (len(ORF_seq_enc[i]) * 3) + 6
+   334                                                     TIS_prob = ORF_TIS_prob[i]
+   335                                                     start_codon = ORF_start_codon[i]
+   336                                                     ATG = start_codon == 0
+   337                                                     GTG = start_codon == 1
+   338                                                     TTG = start_codon == 2
+   339                                         
+   340                                                     combprob = geneprob * weight_gene_prob \
+   341                                                                + TIS_prob * weight_TIS_prob \
+   342                                                                + ATG * weight_ATG \
+   343                                                                + GTG * weight_GTG \
+   344                                                                + TTG * weight_TTG
+   345                                                     maxprob = weight_gene_prob + weight_TIS_prob + max(weight_ATG, weight_TTG, weight_GTG)
+   346                                                     probthresh = score_threshold * maxprob
+   347                                                     score = (combprob - probthresh) * length + 1e6 * seengene[seengene_idx]
+   348                                                     seengene_idx += 1
+   349                                         
+   350                                                     ORF_score_flat.append(score)
+   351                                         
+   352                                             else:
+   353  383.953 MiB    0.000 MiB           5           ORF_score_flat = []
+   354  383.953 MiB    0.004 MiB        1209           for i, geneprob in enumerate(ORF_gene_score):
+   355  383.953 MiB    0.000 MiB        1204               if not geneprob:
+   356                                                         ORF_score_flat.append(None)
+   357                                                         continue
+   358                                         
+   359                                                     # calculate length by multiplying number of amino acids by 3, then adding 6 for start and stop
+   360  383.953 MiB    0.000 MiB        1204               length = len(ORF_seq_enc[i]) * 3
+   361  383.953 MiB    0.000 MiB        1204               TIS_prob = ORF_TIS_prob[i]
+   362  383.953 MiB    0.000 MiB        1204               start_codon = ORF_start_codon[i]
+   363  383.953 MiB    0.000 MiB        1204               ATG = start_codon == 0
+   364  383.953 MiB    0.000 MiB        1204               GTG = start_codon == 1
+   365  383.953 MiB    0.000 MiB        1204               TTG = start_codon == 2
+   366                                         
+   367  383.953 MiB    0.008 MiB        6020               combprob = geneprob * weight_gene_prob \
+   368  383.953 MiB    0.004 MiB        1204                          + TIS_prob * weight_TIS_prob \
+   369  383.953 MiB    0.000 MiB        1204                          + ATG * weight_ATG \
+   370  383.953 MiB    0.000 MiB        1204                          + GTG * weight_GTG \
+   371  383.953 MiB    0.000 MiB        1204                          + TTG * weight_TTG
+   372  383.953 MiB    0.000 MiB        1204               maxprob = weight_gene_prob + weight_TIS_prob + max(weight_ATG, weight_TTG, weight_GTG)
+   373  383.953 MiB    0.000 MiB        1204               probthresh = score_threshold * maxprob
+   374  383.953 MiB    0.000 MiB        1204               score = (combprob - probthresh) * length
+   375                                         
+   376  383.953 MiB    0.000 MiB        1204               ORF_score_flat.append(score)
+   377                                         
+   378                                             # update initial dictionary, removing low scoring ORFs and create score mapping score within a tuple
+   379  383.953 MiB    0.000 MiB           5       ORF_score_dict = {}
+   380  383.953 MiB    0.000 MiB        1209       for i, score in enumerate(ORF_score_flat):
+   381                                                 # if score greater than minimum, add to the ORF_score_dict
+   382  383.953 MiB    0.000 MiB        1204           if score >= minimum_ORF_score:
+   383  383.953 MiB    0.000 MiB         493               ORF_score_dict[i] = score
+   384                                         
+   385  383.953 MiB    0.000 MiB           5       return ORF_score_dict
+
+
+Filename: /mnt/c/Users/sth19/PycharmProjects/Genome_Graph_project/ggCaller/ggCaller/graph_traversal.py
+
+Line #    Mem usage    Increment  Occurences   Line Contents
+============================================================
+    20  383.953 MiB 18419.145 MiB          48   @profile
+    21                                         def traverse_components(component, tc, component_list, edge_weights, minimum_path_score):
+    22                                             # initilise high scoring ORF set to return
+    23  383.953 MiB    0.000 MiB          48       high_scoring_ORFs = set()
+    24                                         
+    25                                             # generate subgraph view
+    26  383.953 MiB    0.051 MiB          48       u = gt.GraphView(tc, vfilt=component_list == component)
+    27                                         
+    28                                             # initialise list of high scoring ORFs and their associated score for single component
+    29  383.953 MiB    0.000 MiB          48       high_scoring_ORFs_temp = []
+    30                                         
+    31  383.953 MiB    0.000 MiB          48       high_score_temp = 0
+    32                                         
+    33                                             # iterate over edges, determine which are source and sink nodes for connected components
+    34  383.953 MiB    0.027 MiB          48       vertices = u.get_vertices()
+    35  383.953 MiB    0.070 MiB          48       in_degs = u.get_in_degrees(u.get_vertices())
+    36  383.953 MiB    0.008 MiB          48       out_degs = u.get_out_degrees((u.get_vertices()))
+    37                                         
+    38                                             # calculate start nodes and add to list, if in-degree is 0
+    39  383.953 MiB    0.012 MiB         637       start_vertices = [vertices[i] for i in range(len(in_degs)) if in_degs[i] == 0]
+    40                                         
+    41                                             # calculate end nodes and add to list, if in-degree is 0
+    42  383.953 MiB    0.000 MiB         637       end_vertices = [vertices[i] for i in range(len(out_degs)) if out_degs[i] == 0]
+    43                                         
+    44                                             # iterate over start and stop vertices
+    45  383.953 MiB    0.000 MiB         291       for start in start_vertices:
+    46                                                 # add the score of the first node
+    47  383.953 MiB    0.000 MiB         243           start_score = u.vertex_properties["score"][start]
+    48                                         
+    49                                                 # check if start vertex is lone node
+    50  383.953 MiB    0.000 MiB         243           if start in end_vertices:
+    51  383.953 MiB    0.000 MiB         167               vertex_list = [start]
+    52                                                     # replace high_score_ORFs with new high scoring ORF path
+    53  383.953 MiB    0.000 MiB         167               if start_score > high_score_temp:
+    54  383.953 MiB    0.000 MiB          56                   high_score_temp = start_score
+    55  383.953 MiB    0.000 MiB          56                   high_scoring_ORFs_temp = vertex_list
+    56                                                 else:
+    57  383.953 MiB    0.000 MiB         510               for end in end_vertices:
+    58  383.953 MiB    0.000 MiB         434                   score = start_score
+    59  383.953 MiB    0.316 MiB         868                   vertex_list, edge_list = gt.shortest_path(u, start, end, weights=edge_weights,
+    60  383.953 MiB    0.000 MiB         434                                                             negative_weights=True, dag=True)
+    61                                                         # ensure a path has been found. If not, pass.
+    62  383.953 MiB    0.000 MiB         434                   if edge_list:
+    63  383.953 MiB    0.000 MiB        1281                       for e in edge_list:
+    64                                                                 # add the inverse of the score to get the true score
+    65  383.953 MiB    0.000 MiB         870                           score -= edge_weights[e]
+    66                                         
+    67                                                             # replace high_score_ORFs with new high scoring ORF path
+    68  383.953 MiB    0.000 MiB         411                       if score > high_score_temp:
+    69  383.953 MiB    0.000 MiB          83                           high_score_temp = score
+    70  383.953 MiB    0.000 MiB          83                           high_scoring_ORFs_temp = vertex_list
+    71                                         
+    72                                             # for highest scoring path, see if greater than cut-off, if so, add high scoring ORFs to set
+    73  383.953 MiB    0.000 MiB          48       if high_score_temp >= minimum_path_score:
+    74  383.953 MiB    0.000 MiB         152           for node in high_scoring_ORFs_temp:
+    75  383.953 MiB    0.004 MiB         104               high_scoring_ORFs.add(u.vertex_properties["ID"][node])
+    76                                         
+    77  383.953 MiB    0.000 MiB          48       return high_scoring_ORFs
+
+
+Filename: /mnt/c/Users/sth19/PycharmProjects/Genome_Graph_project/ggCaller/ggCaller/graph_traversal.py
+
+Line #    Mem usage    Increment  Occurences   Line Contents
+============================================================
+    80  383.953 MiB 1917.371 MiB           5   @profile
+    81                                         def call_true_genes(ORF_score_dict, ORF_overlap_dict, minimum_path_score):
+    82                                         
+    83                                             # initilise high scoring ORF set to return
+    84  383.953 MiB    0.000 MiB           5       high_scoring_ORFs_all = set()
+    85                                         
+    86                                             # create empty, directed graph
+    87  383.953 MiB    0.039 MiB           5       g = gt.Graph()
+    88                                         
+    89                                             # create a dictionaries assign each ORF an index in the graph to vertices
+    90  383.953 MiB    0.000 MiB           5       ORF_index = {}
+    91                                         
+    92                                             # add vertexes to graph, store ORF information in ORF_index
+    93  383.953 MiB    0.000 MiB         498       for ORF in ORF_score_dict.keys():
+    94  383.953 MiB    0.047 MiB         493           v = g.add_vertex()
+    95  383.953 MiB    0.016 MiB         493           ORF_index[ORF] = g.vertex_index[v]
+    96                                         
+    97                                             # add edges and edge weights between connected ORFs using ORF_overlap_dict. ORF1 is sink, ORF2 is source
+    98  383.953 MiB    0.000 MiB        1159       for ORF1, overlap_dict in ORF_overlap_dict.items():
+    99                                                 # check that ORF1 nodes exist in graph, may have been removed due to low score
+   100  383.953 MiB    0.000 MiB        1154           if ORF1 in ORF_index:
+   101  383.953 MiB    0.000 MiB        2711               for ORF2 in overlap_dict.keys():
+   102                                                         # check that ORF2 nodes exist in graph as before
+   103  383.953 MiB    0.000 MiB        2242                   if ORF2 in ORF_index:
+   104                                                             # add new edge between the two ORFs, where ORF2 is the source and ORF1 is the sink
+   105  383.953 MiB    0.020 MiB        1617                       e = g.add_edge(g.vertex(ORF_index[ORF2]), g.vertex(ORF_index[ORF1]))
+   106                                         
+   107                                             # determine if cycles present. If so, break them by removing edge before repeated node and re-test
+   108  383.953 MiB    0.000 MiB           5       cycle = True
+   109  383.953 MiB    0.000 MiB           5       try:
+   110  383.953 MiB    0.164 MiB           5           circuit = next(gt.all_circuits(g))
+   111  383.953 MiB    0.000 MiB           5       except StopIteration:
+   112  383.953 MiB    0.000 MiB           5           cycle = False
+   113                                         
+   114  383.953 MiB    0.000 MiB           5       while cycle:
+   115                                                 end_cycle = circuit[-1]
+   116                                                 start_cycle = circuit[0]
+   117                                                 e = g.edge(end_cycle, start_cycle)
+   118                                                 g.remove_edge(e)
+   119                                                 try:
+   120                                                     circuit = next(gt.all_circuits(g))
+   121                                                 except StopIteration:
+   122                                                     break
+   123                                         
+   124                                             # generate a transative closure of the graph to add all directed edges and add vertex properties
+   125  383.953 MiB    0.055 MiB           5       tc = gt.transitive_closure(g)
+   126                                         
+   127                                             # clear original graph
+   128  383.953 MiB    0.008 MiB           5       g.clear()
+   129                                         
+   130                                             # get label components of tc
+   131  383.953 MiB    0.156 MiB           5       components = gt.label_components(tc, directed=False)[0].a
+   132                                         
+   133                                             # create vertex property map to store node IDs and scores
+   134  383.953 MiB    0.000 MiB           5       vertex_ID = tc.new_vertex_property("int")
+   135  383.953 MiB    0.023 MiB           5       vertex_score = tc.new_vertex_property("double")
+   136  383.953 MiB    0.000 MiB         498       for ORF_ID, index in ORF_index.items():
+   137  383.953 MiB    0.008 MiB         493           vertex_ID[tc.vertex(index)] = ORF_ID
+   138  383.953 MiB    0.004 MiB         493           vertex_score[tc.vertex(index)] = ORF_score_dict[ORF_ID]
+   139                                         
+   140                                             # add vertex IDs and scores as internal property of graph
+   141  383.953 MiB    0.004 MiB           5       tc.vertex_properties["ID"] = vertex_ID
+   142  383.953 MiB    0.000 MiB           5       tc.vertex_properties["score"] = vertex_score
+   143                                         
+   144                                             # create edge weights property
+   145  383.953 MiB    0.008 MiB           5       edge_weights = tc.new_edge_property("double")
+   146                                         
+   147                                             # create incompatible list for edge iteration
+   148  383.953 MiB    0.000 MiB           5       incomp_edges = []
+   149                                         
+   150                                             # iterate over edges and assign weights, and identify invalid overlaps to remove
+   151  383.953 MiB    0.066 MiB        2822       for e in tc.edges():
+   152                                                 # parse sink and source nodes, order same as before
+   153  383.953 MiB    0.004 MiB        2817           ORF1 = tc.vertex_properties["ID"][e.target()]
+   154  383.953 MiB    0.000 MiB        2817           ORF2 = tc.vertex_properties["ID"][e.source()]
+   155                                         
+   156                                                 # parse sink ORF score calculated by Balrog
+   157  383.953 MiB    0.000 MiB        2817           ORF_score = ORF_score_dict[ORF1]
+   158                                         
+   159                                                 # check if edges are present by overlap detection. If not, set edge weight as ORF1 score
+   160  383.953 MiB    0.000 MiB        2817           if ORF1 not in ORF_overlap_dict:
+   161                                                     edge_weights[e] = -(ORF_score)
+   162                                                     continue
+   163  383.953 MiB    0.000 MiB        2817           elif ORF2 not in ORF_overlap_dict[ORF1]:
+   164  383.953 MiB    0.000 MiB        1200               edge_weights[e] = -(ORF_score)
+   165  383.953 MiB    0.000 MiB        1200               continue
+   166                                                 # parse overlap info, calculate edge weight
+   167  383.953 MiB    0.000 MiB        1617           overlap_type, abs_overlap = ORF_overlap_dict[ORF1][ORF2]
+   168                                         
+   169                                                 # set penalty to 0 for "n" or "w" or "i" overlaps
+   170  383.953 MiB    0.000 MiB        1617           penalty = 0
+   171  383.953 MiB    0.000 MiB        1617           if overlap_type == "i":
+   172                                                     # add incompatible ORFs as tuple, added as source (1) and sink(2)
+   173  383.953 MiB    0.000 MiB        1375               incomp_edges.append(e)
+   174  383.953 MiB    0.000 MiB         242           elif overlap_type == "u":
+   175  383.953 MiB    0.000 MiB          58               penalty = unidirectional_penalty_per_base * abs_overlap
+   176  383.953 MiB    0.000 MiB         184           elif overlap_type == "c":
+   177  383.953 MiB    0.000 MiB          29               penalty = convergent_penalty_per_base * abs_overlap
+   178  383.953 MiB    0.000 MiB         155           elif overlap_type == "d":
+   179  383.953 MiB    0.000 MiB           2               penalty = divergent_penalty_per_base * abs_overlap
+   180                                                 # set ORF score to negative so that shortest algorithm can be applied
+   181  383.953 MiB    0.070 MiB        1617           edge_weights[e] = -(ORF_score - penalty)
+   182                                         
+   183                                             # add edge_weights as internal property
+   184  383.953 MiB    0.012 MiB           5       tc.edge_properties["weights"] = edge_weights
+   185                                         
+   186                                             # iterate over incompatible edges to remove them
+   187  383.953 MiB    0.000 MiB        1380       for e in incomp_edges:
+   188  383.953 MiB    0.012 MiB        1375           tc.remove_edge(e)
+   189                                         
+   190                                             # iterate over components, find highest scoring path within component with multiprocessing to determine geniest path through components
+   191  383.953 MiB    0.012 MiB          53       for component in set(components):
+   192  383.953 MiB 18419.637 MiB          48           high_scoring_ORFs = traverse_components(component, tc, components, edge_weights, minimum_path_score)
+   193  383.953 MiB    0.000 MiB          48           high_scoring_ORFs_all.update(high_scoring_ORFs)
+   194                                         
+   195  383.953 MiB    0.000 MiB           5       return high_scoring_ORFs_all
+
+
+Filename: /mnt/c/Users/sth19/PycharmProjects/Genome_Graph_project/ggCaller/ggCaller/graph_traversal.py
+
+Line #    Mem usage    Increment  Occurences   Line Contents
+============================================================
+   197  383.855 MiB 1815.004 MiB           5   @profile
+   198                                         def run_calculate_ORFs(node_set_tuple, graph, repeat, overlap, max_path_length, is_ref, no_filter,
+   199                                                                stop_codons_for, start_codons, min_ORF_length, max_ORF_overlap, minimum_ORF_score,
+   200                                                                minimum_path_score, write_idx, input_colours, aa_kmer_set, model, model_tis):
+   201                                             # unpack tuple
+   202  383.855 MiB    0.000 MiB           5       colour_ID, node_set = node_set_tuple
+   203                                         
+   204                                             # load shared memory items
+   205  383.855 MiB    0.000 MiB           5       graph_shm = shared_memory.SharedMemory(name=graph.name)
+   206  383.855 MiB    0.000 MiB           5       graph = np.ndarray(graph.shape, dtype=graph.dtype, buffer=graph_shm.buf)
+   207  383.859 MiB    0.020 MiB           5       graph = graph[0]
+   208                                         
+   209                                             # generate and parse data from np_arrays if no_filter is False
+   210  383.859 MiB    0.000 MiB           5       if not no_filter:
+   211                                                 # aa_kmer_set_shm = shared_memory.SharedMemory(name=aa_kmer_set.name)
+   212                                                 # aa_kmer_set = np.ndarray(aa_kmer_set.shape, dtype=aa_kmer_set.dtype, buffer=aa_kmer_set_shm.buf)
+   213                                         
+   214  383.859 MiB    0.000 MiB           5           model_shm = shared_memory.SharedMemory(name=model.name)
+   215  383.859 MiB    0.000 MiB           5           model = np.ndarray(model.shape, dtype=model.dtype, buffer=model_shm.buf)
+   216                                         
+   217  383.859 MiB    0.000 MiB           5           model_tis_shm = shared_memory.SharedMemory(name=model_tis.name)
+   218  383.859 MiB    0.000 MiB           5           model_tis = np.ndarray(model_tis.shape, dtype=model_tis.dtype, buffer=model_tis_shm.buf)
+   219                                         
+   220  383.863 MiB    0.020 MiB           5           model_obj = model[0]
+   221  383.867 MiB    0.020 MiB           5           model_tis_obj = model_tis[0]
+   222                                         
+   223                                             # determine all ORFs in Bifrost graph
+   224  383.867 MiB    0.703 MiB          10       ORF_overlap_dict, ORF_vector = graph.findORFs(colour_ID, node_set, repeat,
+   225  383.867 MiB    0.000 MiB           5                                                     overlap, max_path_length, is_ref, no_filter,
+   226  383.867 MiB    0.000 MiB           5                                                     stop_codons_for, start_codons, min_ORF_length,
+   227  383.867 MiB    0.000 MiB           5                                                     max_ORF_overlap, write_idx, input_colours[colour_ID])
+   228                                         
+   229                                             # if no filter specified, just copy ORF_vector to true_genes
+   230  383.867 MiB    0.000 MiB           5       if no_filter:
+   231                                                 true_genes = ORF_vector
+   232                                             else:
+   233                                                 # calculate scores for genes
+   234  383.953 MiB 1917.371 MiB          10           ORF_score_dict = score_genes(ORF_vector, graph, minimum_ORF_score, overlap, model_obj, model_tis_obj,
+   235  383.867 MiB    0.000 MiB           5                                        aa_kmer_set)
+   236                                         
+   237                                                 # determine highest scoring genes
+   238  383.953 MiB 1918.590 MiB           5           high_scoring_ORFs = call_true_genes(ORF_score_dict, ORF_overlap_dict, minimum_path_score)
+   239                                         
+   240                                                 # initiate true genes list
+   241  383.953 MiB    0.000 MiB           5           true_genes = [None] * len(high_scoring_ORFs)
+   242                                         
+   243  383.953 MiB    0.000 MiB         109           for index, ORF_id in enumerate(high_scoring_ORFs):
+   244                                                     # add only high scoring ORFs to true_genes
+   245  383.953 MiB    0.000 MiB         104               true_genes[index] = ORF_vector[ORF_id]
+   246                                         
+   247  383.953 MiB    0.000 MiB           5       return colour_ID, true_genes
+
+
+Filename: ggCaller/__main__executable.py
+
+Line #    Mem usage    Increment  Occurences   Line Contents
+============================================================
+   103  275.207 MiB  275.207 MiB           1   @profile
+   104                                         def main():
+   105  275.215 MiB    0.008 MiB           1       start_codons = ["ATG", "GTG", "TTG"]
+   106  275.215 MiB    0.000 MiB           1       stop_codons_for = ["TAA", "TGA", "TAG"]
+   107  275.215 MiB    0.000 MiB           1       stop_codons_rev = ["TTA", "TCA", "CTA"]
+   108                                         
+   109  275.215 MiB    0.000 MiB           1       output = "/mnt/c/Users/sth19/PycharmProjects/Genome_Graph_project/ggCaller/group3_capsular_fa_list_pointer_filter.fasta"
+   110                                             # set mimimum path score
+   111  275.215 MiB    0.000 MiB           1       minimum_path_score = 100
+   112  275.215 MiB    0.000 MiB           1       minimum_ORF_score = 100
+   113  275.215 MiB    0.000 MiB           1       no_filter = False
+   114  275.215 MiB    0.000 MiB           1       repeat = False
+   115  275.215 MiB    0.000 MiB           1       max_path_length = 10000
+   116  275.215 MiB    0.000 MiB           1       is_ref = True
+   117  275.215 MiB    0.000 MiB           1       min_ORF_length = 90
+   118  275.215 MiB    0.000 MiB           1       max_ORF_overlap = 60
+   119  275.215 MiB    0.000 MiB           1       write_idx = True
+   120  275.215 MiB    0.000 MiB           1       write_graph = True
+   121                                         
+   122  275.215 MiB    0.000 MiB           1       num_threads = 4
+   123                                         
+   124                                             # graph_tuple = ggCaller_cpp.index_existing(
+   125                                             #     "/mnt/c/Users/sth19/Documents/PhD/Experiments/gene_caller_comparions/ggCaller_results/clique_119_230_372_list.gfa",
+   126                                             #     "/mnt/c/Users/sth19/Documents/PhD/Experiments/gene_caller_comparions/ggCaller_results/clique_119_230_372_list.bfg_colors",
+   127                                             #     stop_codons_for, stop_codons_rev, num_threads, True)
+   128                                         
+   129  275.230 MiB    0.016 MiB           1       graph = ggCaller_cpp.Graph()
+   130                                         
+   131  277.434 MiB    2.203 MiB           2       graph_tuple = graph.build(
+   132  275.230 MiB    0.000 MiB           1           "/mnt/c/Users/sth19/PycharmProjects/Genome_Graph_project/ggCaller/data/group3_capsular_fa_list.txt",
+   133  275.230 MiB    0.000 MiB           1           31, stop_codons_for, stop_codons_rev, num_threads, is_ref, write_graph, "NA")
+   134                                         
+   135                                             # unpack ORF pair into overlap dictionary and list for gene scoring
+   136  277.434 MiB    0.000 MiB           1       node_colour_vector, input_colours, nb_colours, overlap = graph_tuple
+   137                                         
+   138                                             # load balrog models if required
+   139  277.434 MiB    0.000 MiB           1       if not no_filter:
+   140  277.434 MiB    0.000 MiB           1           print("Loading gene models...")
+   141                                                 # aa_kmer_set = load_kmer_model()
+   142  277.434 MiB    0.000 MiB           1           aa_kmer_set = None
+   143  280.332 MiB    2.898 MiB           1           model, model_tis = load_gene_models()
+   144                                         
+   145                                                 # create numpy arrays for shared memory
+   146                                                 # aa_kmer_set = np.array(list(aa_kmer_set))
+   147  280.332 MiB    0.000 MiB           1           model = np.array([model])
+   148  280.332 MiB    0.000 MiB           1           model_tis = np.array([model_tis])
+   149                                             else:
+   150                                                 model, model_tis, aa_kmer_set = None, None, None
+   151                                         
+   152                                             # intiialise true_genes dictionary
+   153  280.332 MiB    0.000 MiB           1       true_genes = {}
+   154                                         
+   155                                             # use shared memory to generate graph vector
+   156  280.332 MiB    0.000 MiB           1       print("Generating high scoring ORF calls...")
+   157                                         
+   158                                             # set number of threads for graphtool and pytorch to 1
+   159  280.332 MiB    0.000 MiB           1       if gt.openmp_enabled():
+   160  280.332 MiB    0.000 MiB           1           gt.openmp_set_num_threads(1)
+   161                                         
+   162  280.332 MiB    0.000 MiB           1       torch.set_num_threads(1)
+   163                                         
+   164                                             # use shared memory for multiprocessing
+   165  280.336 MiB    0.004 MiB           1       with SharedMemoryManager() as smm:
+   166                                                 # generate shared numpy arrays
+   167  280.336 MiB    0.000 MiB           1           graph_arr = np.array([graph])
+   168  280.410 MiB    0.074 MiB           1           graph_shd = generate_shared_mem_array(graph_arr, smm)
+   169                                                 # aa_kmer_set = generate_shared_mem_array(aa_kmer_set, smm)
+   170  280.410 MiB    0.000 MiB           1           if not no_filter:
+   171  280.414 MiB    0.004 MiB           1               model = generate_shared_mem_array(model, smm)
+   172  280.414 MiB    0.000 MiB           1               model_tis = generate_shared_mem_array(model_tis, smm)
+   173                                         
+   174                                                 # run run_calculate_ORFs with multithreading
+   175  383.949 MiB    0.008 MiB           6           for node_set_tuple in enumerate(node_colour_vector):
+   176  383.941 MiB 1918.531 MiB          10               colour_ID, col_true_genes = run_calculate_ORFs(node_set_tuple, graph_shd, repeat, overlap, max_path_length, is_ref, no_filter,
+   177  383.855 MiB    0.000 MiB           5                                      stop_codons_for, start_codons, min_ORF_length, max_ORF_overlap, minimum_ORF_score,
+   178  383.855 MiB    0.000 MiB           5                                      minimum_path_score, write_idx, input_colours, aa_kmer_set, model, model_tis)
+   179                                                     # iterate over entries in col_true_genes to generate the sequences
+   180  383.941 MiB    0.000 MiB         109               for ORFNodeVector in col_true_genes:
+   181  383.941 MiB    0.000 MiB         104                   gene = graph.generate_sequence(ORFNodeVector[0], ORFNodeVector[1], overlap)
+   182  383.941 MiB    0.000 MiB         104                   if gene not in true_genes:
+   183                                                             # create tuple to hold ORF sequence, colours and graph traversal information
+   184  383.941 MiB    0.000 MiB          84                       empty_colours_list = ["0"] * nb_colours
+   185  383.941 MiB    0.000 MiB          84                       true_genes[gene] = (empty_colours_list, ORFNodeVector)
+   186                                                         # update colours with current colour_ID
+   187  383.941 MiB    0.000 MiB         104                   true_genes[gene][0][colour_ID] = "1"
+   188                                         
+   189                                                 # # run run_calculate_ORFs with multithreading
+   190                                                 # with Pool(processes=num_threads) as pool:
+   191                                                 #     for colour_ID, col_true_genes in pool.map(
+   192                                                 #             partial(run_calculate_ORFs, graph=graph_shd, repeat=repeat, overlap=overlap,
+   193                                                 #                     max_path_length=max_path_length, is_ref=is_ref, no_filter=no_filter,
+   194                                                 #                     stop_codons_for=stop_codons_for, start_codons=start_codons,
+   195                                                 #                     min_ORF_length=min_ORF_length, max_ORF_overlap=max_ORF_overlap,
+   196                                                 #                     minimum_ORF_score=minimum_ORF_score, minimum_path_score=minimum_path_score,
+   197                                                 #                     write_idx=write_idx,
+   198                                                 #                     input_colours=input_colours, aa_kmer_set=aa_kmer_set, model=model, model_tis=model_tis),
+   199                                                 #             enumerate(node_colour_vector)):
+   200                                                 #         # iterate over entries in col_true_genes to generate the sequences
+   201                                                 #         for ORFNodeVector in col_true_genes:
+   202                                                 #             gene = graph.generate_sequence(ORFNodeVector[0], ORFNodeVector[1], overlap)
+   203                                                 #             if gene not in true_genes:
+   204                                                 #                 # create tuple to hold ORF sequence, colours and graph traversal information
+   205                                                 #                 empty_colours_list = ["0"] * nb_colours
+   206                                                 #                 true_genes[gene] = (empty_colours_list, ORFNodeVector)
+   207                                                 #             # update colours with current colour_ID
+   208                                                 #             true_genes[gene][0][colour_ID] = "1"
+   209                                         
+   210  383.949 MiB    0.000 MiB           1       print("Generating fasta file of gene calls...")
+   211                                             # print output to file
+   212  383.949 MiB    0.000 MiB           1       ORF_count = 1
+   213  383.949 MiB    0.000 MiB           1       with open(output, "w") as f:
+   214  383.949 MiB    0.000 MiB          85           for gene, info_pair in true_genes.items():
+   215  383.949 MiB    0.000 MiB          84               colour_str = "".join(info_pair[0])
+   216  383.949 MiB    0.000 MiB          84               f.write(">" + str(ORF_count) + "_" + str(colour_str) + "\n" + gene + "\n")
+   217  383.949 MiB    0.000 MiB          84               ORF_count += 1
+   218                                         
+   219  383.949 MiB    0.000 MiB           1       print("Finished.")
+   220                                         
+   221  383.949 MiB    0.000 MiB           1       sys.exit(0)
+
+
