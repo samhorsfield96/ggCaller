@@ -412,6 +412,21 @@ def main():
     if (options.graph is not None) and (options.colours is not None) and (options.query is None):
         graph_tuple = graph.read(options.graph, options.colours, stop_codons_for, stop_codons_rev,
                                  start_codons_for, start_codons_rev, options.threads, is_ref, ref_set, Path_dir)
+    # if graph specified with prev_run and no query, will be updating the graph
+    elif (options.graph is not None) and (options.colours is not None) and (options.query is None) and \
+            (options.prev_run is not None) and (options.refs is not None or options.reads is not None):
+        # references only
+        if (options.refs is not None and options.reads is None):
+            graph_tuple = graph.update(options.graph, options.colours, stop_codons_for, stop_codons_rev,
+                                    start_codons_for, start_codons_rev, options.threads, is_ref, ref_set, Path_dir)
+        # reads only
+        elif (options.refs is None and options.reads is not None):
+            graph_tuple = graph.update(options.graph, options.colours, stop_codons_for, stop_codons_rev,
+                        start_codons_for, start_codons_rev, options.threads, is_ref, ref_set, Path_dir)
+        # refs and reads
+        elif (options.refs is not None and options.reads is not None):
+            graph_tuple = graph.update(options.graph, options.colours, stop_codons_for, stop_codons_rev,
+                        start_codons_for, start_codons_rev, options.threads, is_ref, ref_set, Path_dir)
     # query unitigs in previous saved ggc graph
     elif (options.graph is not None) and (options.colours is not None) and (options.refs is None) and \
             (options.query is not None):
