@@ -187,9 +187,6 @@ GraphTuple Graph::update (const std::string& graphfile,
     // read in graph
     _ccdbg.read(graphfile, coloursfile, num_threads);
 
-    // TODO need to map existing ORF sequences, getting start codon coverage so this can be shared across graph
-    // also need to get centroids and scores to allow clustering and sharing of scores with novel genes
-
     //set local variables
     int kmer = _ccdbg.getK();
     int overlap = kmer - 1;
@@ -342,7 +339,8 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
                                                                                             const std::string& cluster_file,
                                                                                             const float& score_tolerance,
                                                                                             const std::string& tmp_dir,
-                                                                                            const std::string& path_dir)
+                                                                                            const std::string& path_dir,
+                                                                                            const bool update)
 {    
     // initilise map to hold file paths
     std::map<size_t, std::string> ORF_file_paths;
@@ -392,9 +390,27 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
 
         // initialise maps to store ORF TIS scores across threads
         tbb::concurrent_unordered_map<size_t, float> all_TIS_scores;
-
         // create map to hold number of times start codons chosen
         tbb::concurrent_unordered_map<size_t, tbb::concurrent_unordered_set<int>> start_chosen;
+        
+        // read in previously generated files
+        if (update)
+        {
+            {
+                std::ifstream ifs(tmp_dir + "all_TIS_scores.tmp");
+                boost::archive::text_iarchive ia(ifs);
+                ia >> all_TIS_scores;
+            }
+            {
+                std::ifstream ifs(tmp_dir + "start_chosen.tmp");
+                boost::archive::text_iarchive ia(ifs);
+                ia >> start_chosen;
+            }
+        }
+        
+        // TODO need to check whether input is original genome, if not then traverse genome
+        // TODO need to map existing ORF sequences, getting start codon coverage so this can be shared across graph
+        // also need to get centroids and scores to allow clustering and sharing of scores with novel genes
 
         cout << "Traversing graph to identify ORFs..." << endl;
 
