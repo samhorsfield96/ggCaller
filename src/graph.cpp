@@ -185,7 +185,7 @@ GraphTuple Graph::update (const std::string& graphfile,
     omp_set_num_threads(num_threads);
 
     // read in graph
-    _ccdbg_a.read(graphfile, coloursfile, num_threads);
+    _ccdbg.read(graphfile, coloursfile, num_threads);
 
     // TODO need to map existing ORF sequences, getting start codon coverage so this can be shared across graph
     // also need to get centroids and scores to allow clustering and sharing of scores with novel genes
@@ -196,26 +196,9 @@ GraphTuple Graph::update (const std::string& graphfile,
 
     // get the number of colours
     size_t nb_colours_a = _ccdbg.getNbColors();
-
     // get colour names
-    std::vector<std::string> input_colours_ = _ccdbg.getColorNames();
+    std::vector<std::string> input_colours_a = _ccdbg.getColorNames();
 
-    // store is_ref information in bitvector
-    _RefSet.resize(nb_colours);
-    // assume all colours are references
-    if (is_ref && ref_set.empty())
-    {
-        _RefSet.set();
-    } else
-    {
-        for (int i = 0; i < input_colours.size(); i++)
-        {
-            if (ref_set.find(input_colours[i]) != ref_set.end())
-            {
-                _RefSet[i] = 1;
-            }
-        }
-    }
 
     if (infile2 != "NA") {
         is_ref = 0;
@@ -226,18 +209,51 @@ GraphTuple Graph::update (const std::string& graphfile,
     std::string outgraph = infile1.substr(0, lastindex);
     _ccdbg_b = buildGraph(infile1, infile2, is_ref, kmer, num_threads, false, false, outgraph);
 
-    // get the number of colours
+    // get colour names for new graph
+    std::vector<std::string> input_colours_b = _ccdbg_b.getColorNames();
+    // get the number of colours for new graph
     size_t nb_colours_b = _ccdbg_b.getNbColors();
 
-    // get colour names
-    std::vector<std::string> input_colours_ = _ccdbg.getColorNames();
-
     // merge graphs
-    _ccdbg_a.merge(move(_ccdbg_b), num_threads, false);
+    _ccdbg.merge(move(_ccdbg_b), num_threads, false);
+
+    // get colour names for full graph
+    std::vector<std::string> input_colours = _ccdbg.getColorNames();
+    // get the number of colours for full graph
+    size_t nb_colours = _ccdbg_b.getNbColors();
 
     // generate codon index for graph
     cout << "Generating graph stop codon index..." << endl;
     _index_graph(stop_codons_for, stop_codons_rev, start_codons_for, start_codons_rev, kmer, nb_colours, input_colours, path_dir);
+
+    // store is_ref information in bitvector
+    _RefSet.resize(nb_colours);
+    _OriSet.resize(nb_colours);
+    // assume all colours are references
+    if (is_ref && ref_set.empty())
+    {
+        _RefSet.set();
+    } else
+    {
+        for (int i = 0; i < input_colours.size(); i++)
+        {
+            // check new files
+            if (ref_set.find(input_colours[i]) != ref_set.end())
+            {
+                _RefSet[i] = 1;
+            }
+        }
+    }
+
+    // determine which files are old/new
+    for (int i = 0; i < input_colours.size(); i++)
+    {
+        if (input_colours_a.find(input_colours[i]) != input_colours_a.end())
+        {
+            _OriSet[i] = 1;
+            _RefSet[i] = 1;
+        }
+    }
 
     // create vector bool for reference sequences
     std::vector<bool> ref_list(nb_colours, false);
@@ -451,6 +467,25 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
                 bar.update();
             }
         }
+
+        // save all_TIS_scores
+        {
+            std::string out_path = tmp_dir + "all_TIS_scores.tmp";
+            std::ofstream ofs(out_path);
+            boost::archive::text_oarchive oa(ofs);
+            // write class instance to archive
+            oa << all_TIS_scores;
+        }
+
+        // save start_chosen
+        {
+            std::string out_path = tmp_dir + "start_chosen.tmp";
+            std::ofstream ofs(out_path);
+            boost::archive::text_oarchive oa(ofs);
+            // write class instance to archive
+            oa << start_chosen;
+        }
+
     }
 
     //clear objects no longer used
@@ -676,6 +711,15 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
             // write class instance to archive
 
             oa << cluster_map;
+        }
+
+        // save all_ORF_scores
+        {
+            std::string out_path = tmp_dir + "all_ORF_scores.tmp";
+            std::ofstream ofs(out_path);
+            boost::archive::text_oarchive oa(ofs);
+            // write class instance to archive
+            oa << all_ORF_scores;
         }
     }
 
