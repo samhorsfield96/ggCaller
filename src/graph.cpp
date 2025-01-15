@@ -1139,7 +1139,8 @@ void Graph::_index_graph (const std::vector<std::string>& stop_codons_for,
 }
 
 void Graph::_read_centroids (const std::string& fasta_file,
-                            tbb::concurrent_unordered_map<std::string, ORFNodeVector>& centroid_map)
+                            tbb::concurrent_unordered_map<std::string, ORFNodeVector>& centroid_map,
+                            const int kmer)
 {
     // open the file handler
     gzFile fp = gzopen(fasta_file.c_str(), "r");
@@ -1161,9 +1162,9 @@ void Graph::_read_centroids (const std::string& fasta_file,
         
         // convert string to uppercase to avoid indexing issues
         //std::transform(sequence.begin(), sequence.end(), sequence.begin(), ::ascii_toupper_char);
-
+        
         // map sequence to DBG
-
+        centroid_map[header] = map_seq_to_graph(sequence, _ccdbg);
     }
 
     // destroy seq and fp objects
@@ -1225,6 +1226,44 @@ std::unordered_map<size_t, std::unordered_set<size_t>> read_edge_file(const std:
 void clear_graph(Graph& g)
 {
     g.~Graph();
+}
+
+ORFNodeVector map_seq_to_graph(const std::string& sequence,
+                               const ColoredCDBG<MyUnitigMap>& ccdbg)
+{
+    // TODO map sequence to DBG and get full coordinates
+    std::vector<int> node_vector;
+    std::vector<indexPair> pos_vector;
+    const size_t length = sequence.size();
+    const bool strand = true;
+
+    // convert query to string for search in graph
+    const char *sequence_str = sequence.c_str();
+
+    for (KmerIterator it_km(sequence_str), it_km_end; it_km != it_km_end; ++it_km)
+    {
+        auto um = ccdbg.find(it_km->first);
+
+        // determine how sequence maps to 
+        const string unitig = um.mappedSequenceToString();
+        const int strandness = um.strand ? 1 : -1;
+        const size_t start_pos = um.dist;
+        const size_t end_pos = start_pos + um.len + kmer - 1;
+
+        auto da = um.getData();
+        const MyUnitigMap* um_data = da->getData(um);
+
+        // get orientation of node and id
+        int node_id = um_data->get_id() * strandness;
+
+        node_vector.push_back(node_id);
+        pos_vector.push_back({start_pos, end_pos});
+    }
+    
+    // create ORF_node_vector
+    ORFNodeVector ORF_node_vector = std::make_tuple(node_vector, pos_vector, length, true, 0.0, "", "");
+
+    return ORF_node_vector;
 }
 
 //void use_count(std::shared_ptr<Graph> sp)
