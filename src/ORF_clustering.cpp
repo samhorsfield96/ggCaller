@@ -1,19 +1,116 @@
 #include "ORF_clustering.h"
 
+void assign_centroids(const ColoredCDBG<MyUnitigMap>& ccdbg,
+                      const std::vector<Kmer>& head_kmer_arr,
+                      const size_t& overlap, 
+                      const ORFNodeVector& ORF_info,
+                      std::vector<std::tuple<int, int, size_t, size_t, std::shared_ptr<std::string>>>& centroid_vector)
+{
+    // iterate over nodes traversed by ORF
+    const auto& ORF_nodes = std::get<0>(ORF_info);
+    
+    // hold indices that are complete unitigs i.e. start/end not in overlap
+    std::vector<size_t> complete_nodes;
+
+    for (int i = 0; i < ORF_nodes.size(); i++)
+    {
+        const auto& node_indices = std::get<1>(ORF_info).at(i);
+        // determine if at end and in overlap region of unitigs, if so pass
+        if ((node_indices.second - node_indices.first) < overlap)
+        {
+            // if no entries added, then at start so break
+            if (complete_nodes.empty())
+            {
+                continue;
+            }
+            // else at end, so break
+            else
+            {
+                break;
+            }
+        }
+        // convert node_traversed to size_t, minus 1 as unitigs are one-based, needs to be zero based
+        complete_nodes.push_back(abs(ORF_nodes.at(i)) - 1);
+    }
+    // get hash to hash map
+    std::string ORF_seq = generate_sequence_nm(std::get<0>(ORF_info), std::get<1>(ORF_info), overlap, ccdbg, head_kmer_arr);
+    size_t ORF_hash = hasher{}(ORF_seq);
+    // generate compact amino acid sequence
+    ORF_seq = translate(ORF_seq);
+
+    // get length of ORF entry
+    const size_t& ORF_length = std::get<2>(ORF_info);
+
+    // go over again, this time determining centroid status
+    for (const auto& node_ID : complete_nodes)
+    {
+        // determine the current size of the ORF and the centroid if previous assigned
+        if (std::get<0>(centroid_vector.at(node_ID)) != -1)
+        {
+            auto& centroid_ID = centroid_vector[node_ID];
+            const auto& centroid_length = std::get<3>(centroid_ID);
+
+            // determine if current ORF is larger than current centroid
+            // if equal, then add lowest ORF index of two as centroid
+            if (ORF_length >= centroid_length)
+            {
+                // if equal, then add lowest ORF index of two as centroid
+                if (ORF_length == centroid_length)
+                {
+                    const auto& centroid_hash = std::get<2>(centroid_ID);
+
+                    if (ORF_hash < centroid_hash)
+                    {
+                        centroid_ID = {colour.first, ORF_entry.first, ORF_hash, ORF_length, std::make_shared<std::string>(ORF_seq)};
+                    } else if (ORF_hash == centroid_hash)
+                    {
+                        if (colour.first < std::get<0>(centroid_ID))
+                        {
+                            centroid_ID = {colour.first, ORF_entry.first, ORF_hash, ORF_length, std::make_shared<std::string>(ORF_seq)};
+                        }
+                    }
+                } else
+                {
+                    centroid_ID = {colour.first, ORF_entry.first, ORF_hash, ORF_length, std::make_shared<std::string>(ORF_seq)};
+                }
+            }
+        } else
+        {
+            centroid_vector[node_ID] = {colour.first, ORF_entry.first, ORF_hash, ORF_length, std::make_shared<std::string>(ORF_seq)};
+        }
+    }
+}
+
 ORFGroupPair group_ORFs(const std::map<size_t, std::string>& ORF_file_paths,
                         const ColoredCDBG<MyUnitigMap>& ccdbg,
                         const std::vector<Kmer>& head_kmer_arr,
-                        const size_t& overlap)
+                        const size_t& overlap, 
+                        tbb::concurrent_unordered_map<std::string, ORFNodeVector> centroid_map)
 {
     // intialise Eigen Triplet
     std::vector<ET> tripletList;
 
     // initialise length list for sorting of ORFs by length
-    std::vector<std::pair<size_t, std::pair<size_t, size_t>>> ORF_length_list;
+    std::vector<std::pair<size_t, std::pair<int, int>>> ORF_length_list;
 
     // initialise vector to hold all centroid IDs in, and dynamic bitset to determine which centroids have been assigned
     std::shared_ptr<std::string> placeholder = std::make_shared<std::string>("");
     std::vector<std::tuple<int, int, size_t, size_t, std::shared_ptr<std::string>>> centroid_vector(head_kmer_arr.size(), {-1, -1, 0, 0, placeholder});
+
+    // iterate over previous centroids first and add
+    size_t centroid_ID = 0;
+    for (const auto& ORF_entry : centroid_map)
+    {       
+        // extract info from ORF_entry
+        const auto& ORF_info = ORF_entry.second;
+
+        // add previous centroids as -1 index
+        ORF_length_list.push_back({std::get<2>(ORF_info), {-1, centroid_ID}});
+
+        assign_centroids(ccdbg, head_kmer_arr, overlap, ORF_info, centroid_vector);
+
+        centroid_ID++;
+    }
 
     // iterate over each ORF sequence with specific colours combination
     for (const auto& colour : ORF_file_paths)
@@ -31,81 +128,9 @@ ORFGroupPair group_ORFs(const std::map<size_t, std::string>& ORF_file_paths,
             // extract info from ORF_entry
             const auto& ORF_info = ORF_entry.second;
 
-            // iterate over nodes traversed by ORF
-            const auto& ORF_nodes = std::get<0>(ORF_info);
-
             ORF_length_list.push_back({std::get<2>(ORF_info), {colour.first, ORF_entry.first}});
 
-            // hold indices that are complete unitigs i.e. start/end not in overlap
-            std::vector<size_t> complete_nodes;
-
-            for (int i = 0; i < ORF_nodes.size(); i++)
-            {
-                const auto& node_indices = std::get<1>(ORF_info).at(i);
-                // determine if at end and in overlap region of unitigs, if so pass
-                if ((node_indices.second - node_indices.first) < overlap)
-                {
-                    // if no entries added, then at start so break
-                    if (complete_nodes.empty())
-                    {
-                        continue;
-                    }
-                    // else at end, so break
-                    else
-                    {
-                        break;
-                    }
-                }
-                // convert node_traversed to size_t, minus 1 as unitigs are one-based, needs to be zero based
-                complete_nodes.push_back(abs(ORF_nodes.at(i)) - 1);
-            }
-            // get hash to hash map
-            std::string ORF_seq = generate_sequence_nm(std::get<0>(ORF_info), std::get<1>(ORF_info), overlap, ccdbg, head_kmer_arr);
-            size_t ORF_hash = hasher{}(ORF_seq);
-            // generate compact amino acid sequence
-            ORF_seq = translate(ORF_seq);
-
-            // get length of ORF entry
-            const size_t& ORF_length = std::get<2>(ORF_info);
-
-            // go over again, this time determining centroid status
-            for (const auto& node_ID : complete_nodes)
-            {
-                // determine the current size of the ORF and the centroid if previous assigned
-                if (std::get<0>(centroid_vector.at(node_ID)) != -1)
-                {
-                    auto& centroid_ID = centroid_vector[node_ID];
-                    const auto& centroid_length = std::get<3>(centroid_ID);
-
-                    // determine if current ORF is larger than current centroid
-                    // if equal, then add lowest ORF index of two as centroid
-                    if (ORF_length >= centroid_length)
-                    {
-                        // if equal, then add lowest ORF index of two as centroid
-                        if (ORF_length == centroid_length)
-                        {
-                            const auto& centroid_hash = std::get<2>(centroid_ID);
-
-                            if (ORF_hash < centroid_hash)
-                            {
-                                centroid_ID = {colour.first, ORF_entry.first, ORF_hash, ORF_length, std::make_shared<std::string>(ORF_seq)};
-                            } else if (ORF_hash == centroid_hash)
-                            {
-                                if (colour.first < std::get<0>(centroid_ID))
-                                {
-                                    centroid_ID = {colour.first, ORF_entry.first, ORF_hash, ORF_length, std::make_shared<std::string>(ORF_seq)};
-                                }
-                            }
-                        } else
-                        {
-                            centroid_ID = {colour.first, ORF_entry.first, ORF_hash, ORF_length, std::make_shared<std::string>(ORF_seq)};
-                        }
-                    }
-                } else
-                {
-                    centroid_vector[node_ID] = {colour.first, ORF_entry.first, ORF_hash, ORF_length, std::make_shared<std::string>(ORF_seq)};
-                }
-            }
+            assign_centroids(ccdbg, head_kmer_arr, overlap, ORF_info, centroid_vector);
         }
     }
 
@@ -116,6 +141,8 @@ ORFGroupPair group_ORFs(const std::map<size_t, std::string>& ORF_file_paths,
     auto return_pair = std::pair(centroid_vector, ORF_length_list);
     return return_pair;
 }
+
+// TODO need to identify which genes cluster with old centroids/which replace old centroids, use the existing scoring to avoid recalculating.
 
 // why not store all centroid sequences in a list, then iterate through all genes as before
 // compare them to all centroids and calculate pairwise scores, cluster greedily

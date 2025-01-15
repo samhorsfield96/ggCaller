@@ -564,7 +564,7 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
             }
 
             // update centroid sequences from FASTA file
-            _read_centroids(tmp_dir + "centroid_seqs.fasta" , centroid_map, overlap + 1);
+            _read_centroids(tmp_dir + "centroid_seqs.fasta", centroid_map, overlap + 1);
         }
 
         // scope for clustering variables
