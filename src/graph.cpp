@@ -225,7 +225,7 @@ GraphTuple Graph::update (const std::string& graphfile,
 
     // store is_ref information in bitvector
     _RefSet.resize(nb_colours);
-    _OriSet.resize(nb_colours);
+    _NewSet.resize(nb_colours);
     // assume all colours are references
     if (is_ref && ref_set.empty())
     {
@@ -243,11 +243,12 @@ GraphTuple Graph::update (const std::string& graphfile,
     }
 
     // determine which files are old/new
+    _NewSet.set();
     for (int i = 0; i < input_colours.size(); i++)
     {
         if (input_colours_a.find(input_colours[i]) != input_colours_a.end())
         {
-            _OriSet[i] = 1;
+            _NewSet[i] = 0;
             _RefSet[i] = 1;
         }
     }
@@ -326,7 +327,7 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
                                                                                             const std::vector<std::string>& start_codons_for,
                                                                                             const size_t min_ORF_length,
                                                                                             const size_t max_overlap,
-                                                                                            const std::vector<std::string>& input_colours,
+                                                                                            const std::vector<std::string>& input_colours_all,
                                                                                             const std::string& ORF_model_file,
                                                                                             const std::string& TIS_model_file,
                                                                                             const float& minimum_ORF_score,
@@ -346,11 +347,21 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
     std::map<size_t, std::string> ORF_file_paths;
     std::map<size_t, std::string> Edge_file_paths;
 
-    // initilise all colour keys
-    for (int colour_ID = 0; colour_ID < input_colours.size(); colour_ID++)
+    // determine which input_colours to analyse
+    std::vector<std::string> input_colours;
+    std::vector<size_t> input_colours_ID;
+
+
+    // initilise all colour keys, determining which colours to analyse
+    for (size_t colour_ID = 0; colour_ID < input_colours_all.size(); colour_ID++)
     {
-        ORF_file_paths[colour_ID] = "";
-        Edge_file_paths[colour_ID] = "";
+        if ((bool)_NewSet[i])
+        {
+            input_colours.push_back(input_colours_all.at(colour_ID));
+            input_colours_ID.push_back(colour_ID)
+            ORF_file_paths[colour_ID] = "";
+            Edge_file_paths[colour_ID] = "";
+        }
     }
 
     // Set number of threads
@@ -416,9 +427,14 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
 
         const int aa_kmer = std::round((float) (overlap + 1) / (float) 6) - 1;
 
+        // determine which input colours should be traversed
+        std::vector<
+
         #pragma omp parallel for
-        for (int colour_ID = 0; colour_ID < input_colours.size(); colour_ID++)
+        for (size_t colour_index = 0; colour_index < input_colours.size(); colour_index++)
         {
+            size_t colour_ID = input_colours_ID.at(colour_index)
+
             // get whether colour is reference or not
             bool is_ref = ((bool)_RefSet[colour_ID]) ? true : false;
 

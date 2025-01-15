@@ -523,10 +523,10 @@ NodeColourVector index_graph(std::vector<Kmer>& head_kmer_arr,
             DataAccessor<MyUnitigMap>* da = um.getData();
             MyUnitigMap* um_data = da->getData(um);
 
-            // add to node_colour_map_private
+            // add to node_colour_map_private only if genome is new
             for (size_t i = 0; i < um_data->full_colour().size(); i++)
             {
-                if (um_data->full_colour()[i])
+                if (um_data->full_colour()[i] && (bool)_NewSet)
                 {
                     node_colour_vector_private[i].push_back(um_data->get_id());
                 }
@@ -545,11 +545,11 @@ NodeColourVector index_graph(std::vector<Kmer>& head_kmer_arr,
     // determine average stop codon frequency per codon
     stop_codon_freq = (float)num_stops / (float)num_codons;
 
-    // generate index of references within ref_set
+    // generate index of references within ref_set and for only new genomes
     std::vector<size_t> ref_index;
     for (int i = 0; i < input_colours.size(); i++)
     {
-        if ((bool)ref_set[i])
+        if ((bool)ref_set[i] && (bool)_NewSet)
         {
             ref_index.push_back(i);
         }
