@@ -527,6 +527,7 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
     std::unordered_map<size_t, std::unordered_set<int>> ORFs_present;
 
     // TODO need to get centroids and scores to allow clustering and sharing of scores with novel genes
+    // could save centroid sequences, map them to get k-mers and then cluster all with centroids that way
 
     // generate clusters if required
     if (clustering || !no_filter)
@@ -549,8 +550,9 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
             }
         }
 
-        // initialise maps to store ORF scores across threads
+        // initialise maps to store ORF scores across threads and centroid sequences
         tbb::concurrent_unordered_map<size_t, float> all_ORF_scores;
+        tbb::concurrent_unordered_map<std::string, ORFNodeVector> centroid_map;                
 
         // read in previously generated files
         if (update)
@@ -560,6 +562,8 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
                 boost::archive::text_iarchive ia(ifs);
                 ia >> all_ORF_scores;
             }
+
+            // update centroid sequences from FASTA file
         }
 
         // scope for clustering variables
@@ -578,6 +582,7 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
 
             // keep track of clusters with low scoring centroids
             tbb::concurrent_unordered_set<std::string> to_remove_cluster;
+           
 
             // set up progress bar
             progressbar bar(ORF_file_paths.size());
@@ -638,6 +643,9 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
                             {
                                 ORFToScoreMap[homolog_ID.first][homolog_ID.second] = gene_prob;
                             }
+
+                            // add cluster information for writing
+                            centroid_map[ORF_ID_str] = centroid_info;
                         }
                     }
                 }
@@ -663,6 +671,26 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
             for (const auto& ORF_ID_str : to_remove_cluster)
             {
                 cluster_map.erase(ORF_ID_str);
+            }
+
+            // write centroid sequences to FASTA file
+            {
+                std::ofstream outfile(tmp_dir + "centroid_seqs.fasta", std::ios::out);
+
+                for (const auto& entry : centroid_map) {
+                    const std::string& header = entry.first;
+                    const std::string& sequence = entry.second;
+
+                    // Write the header
+                    outfile << ">" << header << "\n";
+
+                    // Write the sequence in lines of 80 characters
+                    size_t line_length = 80;
+                    for (size_t i = 0; i < sequence.size(); i += line_length) {
+                        outfile << sequence.substr(i, line_length) << "\n";
+                    }
+                }
+                outfile.close();
             }
             
             // now need to iterate over genes again, identify the centroid and then assign the score
@@ -1108,6 +1136,39 @@ void Graph::_index_graph (const std::vector<std::string>& stop_codons_for,
     float stop_codon_freq = 0;
     _NodeColourVector = std::move(index_graph(_KmerArray, _ccdbg, stop_codon_freq, stop_codons_for, stop_codons_rev, start_codons_for, start_codons_rev, kmer, nb_colours, input_colours, _RefSet, _StartFreq, path_dir));
     _stop_freq= stop_codon_freq;
+}
+
+void Graph::_read_centroids (const std::string& fasta_file,
+                            tbb::concurrent_unordered_map<std::string, ORFNodeVector>& centroid_map)
+{
+    // open the file handler
+    gzFile fp = gzopen(fasta_file.c_str(), "r");
+
+    if(fp == 0) {
+        perror("fopen");
+        exit(1);
+    }
+    // initialize seq
+    kseq_t *seq = kseq_init(fp);
+
+    // read sequence
+    int l;
+    while ((l = kseq_read(seq)) >= 0)
+    {
+        // read sequence
+        std::string& sequence = seq->seq.s;
+        std::string& header = seq->name.s;
+        
+        // convert string to uppercase to avoid indexing issues
+        //std::transform(sequence.begin(), sequence.end(), sequence.begin(), ::ascii_toupper_char);
+
+        // map sequence to DBG
+
+    }
+
+    // destroy seq and fp objects
+    kseq_destroy(seq);
+    gzclose(fp);
 }
 
 std::pair<ORFClusterMap, std::unordered_map<size_t, std::unordered_set<int>>> read_cluster_file(const std::string& cluster_file)
