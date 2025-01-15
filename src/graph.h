@@ -198,7 +198,10 @@ std::pair<RefindMap, bool> refind_gene(const size_t& colour_ID,
                        const std::vector<std::string>& input_colours,
                        const std::string& path_dir);
 
-    
+    void _read_centroids (const std::string& fasta_file,
+                          tbb::concurrent_unordered_map<std::string, ORFNodeVector>& centroid_map,
+                          const int kmer);
+
     // stored bifrost DBG
     ColoredCDBG<MyUnitigMap> _ccdbg;
 
@@ -231,6 +234,9 @@ void save_ORF_file(const std::string& ORF_file_path,
 std::unordered_map<size_t, std::unordered_set<size_t>> read_edge_file(const std::string& cluster_file);
 
 void clear_graph(Graph& g);
+
+ORFNodeVector map_seq_to_graph(const std::string& sequence,
+                               const ColoredCDBG<MyUnitigMap>& ccdbg);
 
 //void use_count(std::shared_ptr<Graph> sp);
 
