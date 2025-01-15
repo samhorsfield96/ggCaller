@@ -418,10 +418,6 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
                 ia >> start_chosen;
             }
         }
-        
-        // TODO need to check whether input is original genome, if not then traverse genome
-        // TODO need to map existing ORF sequences, getting start codon coverage so this can be shared across graph
-        // also need to get centroids and scores to allow clustering and sharing of scores with novel genes
 
         cout << "Traversing graph to identify ORFs..." << endl;
 
@@ -433,7 +429,7 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
         #pragma omp parallel for
         for (size_t colour_index = 0; colour_index < input_colours.size(); colour_index++)
         {
-            size_t colour_ID = input_colours_ID.at(colour_index)
+            size_t colour_ID = input_colours_ID.at(colour_index);
 
             // get whether colour is reference or not
             bool is_ref = ((bool)_RefSet[colour_ID]) ? true : false;
@@ -530,6 +526,8 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
     // keep track of all genes that are low scoring
     std::unordered_map<size_t, std::unordered_set<int>> ORFs_present;
 
+    // TODO need to get centroids and scores to allow clustering and sharing of scores with novel genes
+
     // generate clusters if required
     if (clustering || !no_filter)
     {
@@ -553,6 +551,16 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
 
         // initialise maps to store ORF scores across threads
         tbb::concurrent_unordered_map<size_t, float> all_ORF_scores;
+
+        // read in previously generated files
+        if (update)
+        {
+            {
+                std::ifstream ifs(tmp_dir + "all_ORF_scores.tmp");
+                boost::archive::text_iarchive ia(ifs);
+                ia >> all_ORF_scores;
+            }
+        }
 
         // scope for clustering variables
         {
@@ -584,8 +592,11 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
             //robin_hood::unordered_map<size_t, robin_hood::unordered_map<size_t, float>> ORFToScoreMap;
             
             #pragma omp parallel for
-            for (int colour_ID = 0; colour_ID < ORF_file_paths.size(); colour_ID++)
+            for (int colour_index = 0; colour_index < ORF_file_paths.size(); colour_ID++)
             {
+                // pull out colour_ID
+                size_t colour_ID = input_colours_ID.at(colour_index);
+
                 ORFNodeMap ORF_map;
                 // read in ORF_map file
                 {
@@ -666,8 +677,10 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
             bar2.set_closing_bracket_char("|");
             
             #pragma omp parallel for
-            for (int colour_ID = 0; colour_ID < ORF_file_paths.size(); colour_ID++)
+            for (int colour_index = 0; colour_index < ORF_file_paths.size(); colour_index++)
             {
+                // pull out colour_ID
+                size_t colour_ID = input_colours_ID.at(colour_index);
 
                 ORFNodeMap ORF_map;
                 // read in ORF_map file
@@ -766,8 +779,11 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
         cout << "Identifying high-scoring ORFs..." << endl;
         // after clustering, determing highest scoring gene set
         #pragma omp parallel for
-        for (int colour_ID = 0; colour_ID < ORF_file_paths.size(); colour_ID++)
+        for (int colour_index = 0; colour_index < ORF_file_paths.size(); colour_index++)
         {
+            // pull out colour_ID
+            size_t colour_ID = input_colours_ID.at(colour_index);
+
             ORFNodeMap ORF_map;
             // read in ORF_map file
             {
