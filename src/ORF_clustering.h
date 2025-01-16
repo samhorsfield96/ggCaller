@@ -20,7 +20,7 @@ ORFGroupPair group_ORFs(const std::map<size_t, std::string>& ORF_file_paths,
                         const std::vector<Kmer>& head_kmer_arr,
                         const size_t& overlap);
 
-ORFClusterMap produce_clusters(const std::map<size_t, std::string>& ORF_file_paths,
+std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> produce_clusters(const std::map<size_t, std::string>& ORF_file_paths,
                                const ColoredCDBG<MyUnitigMap>& ccdbg,
                                const std::vector<Kmer>& head_kmer_arr,
                                const size_t& overlap,

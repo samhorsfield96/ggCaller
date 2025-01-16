@@ -534,6 +534,7 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
     {
         cout << "Generating clusters of high-scoring ORFs..." << endl;
         ORFClusterMap cluster_map;
+        robin_hood::unordered_map<std::string, std::string> old_clusters;
 
         // load Balrog gene model
         torch::jit::script::Module ORF_model;
@@ -570,11 +571,13 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
         // scope for clustering variables
         {
             // group ORFs together based on single shared k-mer
-            auto ORF_group_pair = group_ORFs(ORF_file_paths, _ccdbg, _KmerArray, overlap);
+            auto ORF_group_pair = group_ORFs(ORF_file_paths, _ccdbg, _KmerArray, overlap, centroid_map);
 
             // generate clusters for ORFs based on identity
-            cluster_map = produce_clusters(ORF_file_paths, _ccdbg, _KmerArray, overlap,
+            auto cluster_pair = produce_clusters(ORF_file_paths, _ccdbg, _KmerArray, overlap,
                                            ORF_group_pair, id_cutoff, len_diff_cutoff);
+            cluster_map = std::move(cluster_pair.first);
+            old_clusters = std::move(cluster_pair.second);
         }
 
         if (!no_filter)
@@ -618,13 +621,24 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
 
                     const auto& centroid_found = cluster_map.find(ORF_ID_str);
                     
+                    // TODO need to work out how to get old centroids out (-1 colour_ID, and then parse the score info)
                     if (centroid_found != cluster_map.end())
                     {
+                        // determine if gene is clustered with old sequence and doesn't need scoring
+                        const auto& clusters_with_old = old_clusters.find(ORF_ID_str);
+                        float gene_prob = 0.0;
                         auto& centroid_info = ORF_entry.second;
                         std::string centroid_seq = generate_sequence_nm(std::get<0>(centroid_info), std::get<1>(centroid_info), overlap, _ccdbg, _KmerArray);
                         
-                        const auto gene_prob = score_gene(std::get<4>(centroid_info), centroid_seq, std::get<2>(centroid_info), ORF_model, all_ORF_scores);
-                        
+                        // if clusters with old, set gene prob as prevously calculated, need to pull out consistent centroid IDs
+                        if (clusters_with_old != old_clusters.end())
+                        {
+
+                        } else
+                        {
+                            gene_prob = score_gene(std::get<4>(centroid_info), centroid_seq, std::get<2>(centroid_info), ORF_model, all_ORF_scores);
+                        }
+
                         // if centroid score is below the min-orf score remove from cluster map
                         if (std::get<4>(centroid_info) < minimum_ORF_score)
                         {

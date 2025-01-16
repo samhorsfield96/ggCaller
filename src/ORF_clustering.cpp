@@ -146,7 +146,7 @@ ORFGroupPair group_ORFs(const std::map<size_t, std::string>& ORF_file_paths,
 
 // why not store all centroid sequences in a list, then iterate through all genes as before
 // compare them to all centroids and calculate pairwise scores, cluster greedily
-ORFClusterMap produce_clusters(const std::map<size_t, std::string>& ORF_file_paths,
+std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> produce_clusters(const std::map<size_t, std::string>& ORF_file_paths,
                                const ColoredCDBG<MyUnitigMap>& ccdbg,
                                const std::vector<Kmer>& head_kmer_arr,
                                const size_t& overlap,
@@ -242,12 +242,24 @@ ORFClusterMap produce_clusters(const std::map<size_t, std::string>& ORF_file_pat
     // initialise map as intermediate to hold cluster IDs
     ORFClusterMap final_clusters;
 
+    // initialise map to hold genes clustered with old clusters
+    robin_hood::unordered_map<std::string, std::string> old_clusters;
+
     // iterate over ORF_length_list, pulling out centroids and their assigned clustered ORFs
     for (size_t i = 0; i < ORF_length_list.size(); i++)
     {
+        // determine whether cluster contains old centroid
+        bool clusters_with_old = false;
+        std::string old_centroid = "";
         const auto& ORF_ID = ORF_length_list.at(i).second;
 
         std::string ORF_ID_str = std::to_string(ORF_ID.first) + "_" + std::to_string(ORF_ID.second);
+
+        if (ORF_ID.first == -1)
+        {
+            clusters_with_old = true;
+            old_centroid = ORF_ID_str;
+        }
 
         if (cluster_assigned.find(ORF_ID_str) != cluster_assigned.end())
         {
@@ -267,6 +279,16 @@ ORFClusterMap produce_clusters(const std::map<size_t, std::string>& ORF_file_pat
             for (const auto& homolog_ID : CentroidToORFMap.at(ORF_ID_str))
             {
                 std::string homolog_ID_str = std::to_string(homolog_ID.first) + "_" + std::to_string(homolog_ID.second);
+                if (homolog_ID.first == -1)
+                {
+                    clusters_with_old = true;
+
+                    // if multiple cenroids clustered, go with first assigned
+                    if (homolog_ID_str == "")
+                    {
+                        old_centroid = homolog_ID_str;
+                    }
+                }
 
                 // if the homolog is not already assigned to a cluster, assign and add to cluster_assigned
                 if (cluster_assigned.find(homolog_ID_str) == cluster_assigned.end())
@@ -280,6 +302,7 @@ ORFClusterMap produce_clusters(const std::map<size_t, std::string>& ORF_file_pat
                     continue;
                 }
             }
+
             // erase from cluster_map
             CentroidToORFMap.erase(ORF_ID_str);
         } else
@@ -289,9 +312,19 @@ ORFClusterMap produce_clusters(const std::map<size_t, std::string>& ORF_file_pat
 
             cluster_assigned.insert(ORF_ID_str);
         }
+
+        // assign all genes to those that cluster with old centroid
+        if (clusters_with_old)
+        {
+            for (const auto& entry : final_clusters[ORF_ID_str])
+            {
+                std::string homolog_ID_str = std::to_string(homolog_ID.second.first) + "_" + std::to_string(homolog_ID.second.second);
+                old_clusters[homolog_ID_str].push_back(entry.first);
+            }
+        }
     }
 
-    return final_clusters;
+    return {final_clusters, old_clusters};
 }
 
 double align_seqs(const std::string& ORF1_aa,
