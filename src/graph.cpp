@@ -620,12 +620,12 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
                     std::string ORF_ID_str = std::to_string(colour_ID) + "_" + std::to_string(ORF_entry.first);
 
                     const auto& centroid_found = cluster_map.find(ORF_ID_str);
+
+                    // determine if gene is clustered with old sequence and doesn't need scoring
+                    const auto& clusters_with_old = old_clusters.find(ORF_ID_str);
                     
-                    // TODO need to work out how to get old centroids out (-1 colour_ID, and then parse the score info)
                     if (centroid_found != cluster_map.end())
                     {
-                        // determine if gene is clustered with old sequence and doesn't need scoring
-                        const auto& clusters_with_old = old_clusters.find(ORF_ID_str);
                         float gene_prob = 0.0;
                         auto& centroid_info = ORF_entry.second;
                         std::string centroid_seq = generate_sequence_nm(std::get<0>(centroid_info), std::get<1>(centroid_info), overlap, _ccdbg, _KmerArray);
@@ -633,7 +633,18 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
                         // if clusters with old, set gene prob as prevously calculated, need to pull out consistent centroid IDs
                         if (clusters_with_old != old_clusters.end())
                         {
-
+                            // get old centroid ID
+                            const auto& old_centroid_ID = clusters_with_old->second;
+                            auto& old_centroid_info = centroid_map.at(old_centroid_ID);
+                            
+                            // get score
+                            std::string old_centroid_seq = generate_sequence_nm(std::get<0>(old_centroid_info), std::get<1>(old_centroid_info), overlap, _ccdbg, _KmerArray);
+                            const auto ORF_aa = translate(old_centroid_seq).substr(1,(ORF_DNA.size() / 3) - 2);
+                            ORF_hash = hasher{}(ORF_aa);
+                            gene_prob = all_ORF_scores.at(ORF_hash);
+                            
+                            // update centroid score in place
+                            score_cluster(std::get<4>(centroid_info), gene_prob, centroid_seq, std::get<2>(centroid_info));
                         } else
                         {
                             gene_prob = score_gene(std::get<4>(centroid_info), centroid_seq, std::get<2>(centroid_info), ORF_model, all_ORF_scores);
@@ -661,6 +672,27 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
 
                             // add cluster information for writing
                             centroid_map[ORF_ID_str] = centroid_info;
+                        }
+                    } else
+                    // if not centroid, need to check if clusters with old centroid
+                    {
+                        if (clusters_with_old != old_clusters.end())
+                        {
+                            // get old centroid ID
+                            const auto& old_centroid_ID = clusters_with_old->second;
+                            auto& old_centroid_info = centroid_map.at(old_centroid_ID);
+                            
+                            // get score
+                            std::string old_centroid_seq = generate_sequence_nm(std::get<0>(old_centroid_info), std::get<1>(old_centroid_info), overlap, _ccdbg, _KmerArray);
+                            const auto ORF_aa = translate(old_centroid_seq).substr(1,(ORF_DNA.size() / 3) - 2);
+                            ORF_hash = hasher{}(ORF_aa);
+                            gene_prob = all_ORF_scores.at(ORF_hash);
+                            
+                            // update ORFToScoreMap if prob not already present
+                            if (ORFToScoreMap[colour_ID].find(ORF_entry.first) == ORFToScoreMap[colour_ID].end())
+                            {
+                                ORFToScoreMap[colour_ID][ORF_entry.first] = gene_prob;
+                            }
                         }
                     }
                 }
@@ -692,8 +724,10 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
             {
                 std::ofstream outfile(tmp_dir + "centroid_seqs.fasta", std::ios::out);
 
+                // assing placeholder headers for centroids
+                int centroid_ID = 0;
                 for (const auto& entry : centroid_map) {
-                    const std::string& header = entry.first;
+                    const std::string& header = "-1_" + std::to_string(centroid_ID);
                     const std::string& sequence = entry.second;
 
                     // Write the header
@@ -704,6 +738,7 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
                     for (size_t i = 0; i < sequence.size(); i += line_length) {
                         outfile << sequence.substr(i, line_length) << "\n";
                     }
+                    centroid_ID++;
                 }
                 outfile.close();
             }

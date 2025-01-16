@@ -98,18 +98,18 @@ ORFGroupPair group_ORFs(const std::map<size_t, std::string>& ORF_file_paths,
     std::vector<std::tuple<int, int, size_t, size_t, std::shared_ptr<std::string>>> centroid_vector(head_kmer_arr.size(), {-1, -1, 0, 0, placeholder});
 
     // iterate over previous centroids first and add
-    size_t centroid_ID = 0;
     for (const auto& ORF_entry : centroid_map)
     {       
         // extract info from ORF_entry
         const auto& ORF_info = ORF_entry.second;
 
+        // extract centroid_ID
+        int centroid_ID = stoi(ORF_entry.first, 2);
+
         // add previous centroids as -1 index
         ORF_length_list.push_back({std::get<2>(ORF_info), {-1, centroid_ID}});
 
         assign_centroids(ccdbg, head_kmer_arr, overlap, ORF_info, centroid_vector);
-
-        centroid_ID++;
     }
 
     // iterate over each ORF sequence with specific colours combination
