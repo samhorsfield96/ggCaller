@@ -9,6 +9,12 @@
 #include "gene_overlap.h"
 #include "translation.h"
 
+void assign_centroids(const ColoredCDBG<MyUnitigMap>& ccdbg,
+                      const std::vector<Kmer>& head_kmer_arr,
+                      const size_t& overlap, 
+                      const ORFNodeVector& ORF_info,
+                      std::vector<std::tuple<int, int, size_t, size_t, std::shared_ptr<std::string>>>& centroid_vector)
+
 ORFGroupPair group_ORFs(const std::map<size_t, std::string>& ORF_file_paths,
                         const ColoredCDBG<MyUnitigMap>& ccdbg,
                         const std::vector<Kmer>& head_kmer_arr,
