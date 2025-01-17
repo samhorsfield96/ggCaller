@@ -167,9 +167,9 @@ GraphTuple Graph::update (const std::string& graphfile,
                             const std::vector<std::string>& start_codons_for,
                             const std::vector<std::string>& start_codons_rev,
                             size_t num_threads,
-                            const bool is_ref,
+                            bool is_ref,
                             const std::unordered_set<std::string>& ref_set,
-                            const std::string& path_dir
+                            const std::string& path_dir,
                             const bool write_graph) {
 
     // Set number of threads
@@ -204,7 +204,7 @@ GraphTuple Graph::update (const std::string& graphfile,
     // generate graph, writing if write_graph == true
     size_t lastindex = infile1.find_last_of(".");
     std::string outgraph = infile1.substr(0, lastindex);
-    _ccdbg_b = buildGraph(infile1, infile2, is_ref, kmer, num_threads, false, false, outgraph);
+    ColoredCDBG<MyUnitigMap> _ccdbg_b = buildGraph(infile1, infile2, is_ref, kmer, num_threads, false, false, outgraph);
 
     // get colour names for new graph
     std::vector<std::string> input_colours_b = _ccdbg_b.getColorNames();
@@ -246,7 +246,7 @@ GraphTuple Graph::update (const std::string& graphfile,
     _NewSet.set();
     for (int i = 0; i < input_colours.size(); i++)
     {
-        if (input_colours_a.find(input_colours[i]) != input_colours_a.end())
+        if (std::find(input_colours_a.begin(), input_colours_a.end(), input_colours[i]) != input_colours_a.end())
         {
             _NewSet[i] = 0;
             _RefSet[i] = 1;
@@ -355,10 +355,10 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
     // initilise all colour keys, determining which colours to analyse
     for (size_t colour_ID = 0; colour_ID < input_colours_all.size(); colour_ID++)
     {
-        if ((bool)_NewSet[i])
+        if ((bool)_NewSet[colour_ID])
         {
             input_colours.push_back(input_colours_all.at(colour_ID));
-            input_colours_ID.push_back(colour_ID)
+            input_colours_ID.push_back(colour_ID);
             ORF_file_paths[colour_ID] = "";
             Edge_file_paths[colour_ID] = "";
         }
@@ -424,8 +424,6 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
         const int aa_kmer = std::round((float) (overlap + 1) / (float) 6) - 1;
 
         // determine which input colours should be traversed
-        std::vector<
-
         #pragma omp parallel for
         for (size_t colour_index = 0; colour_index < input_colours.size(); colour_index++)
         {
@@ -601,7 +599,7 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
             //robin_hood::unordered_map<size_t, robin_hood::unordered_map<size_t, float>> ORFToScoreMap;
             
             #pragma omp parallel for
-            for (int colour_index = 0; colour_index < ORF_file_paths.size(); colour_ID++)
+            for (int colour_index = 0; colour_index < ORF_file_paths.size(); colour_index++)
             {
                 // pull out colour_ID
                 size_t colour_ID = input_colours_ID.at(colour_index);
@@ -639,8 +637,8 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
                             
                             // get score
                             std::string old_centroid_seq = generate_sequence_nm(std::get<0>(old_centroid_info), std::get<1>(old_centroid_info), overlap, _ccdbg, _KmerArray);
-                            const auto ORF_aa = translate(old_centroid_seq).substr(1,(ORF_DNA.size() / 3) - 2);
-                            ORF_hash = hasher{}(ORF_aa);
+                            const auto ORF_aa = translate(old_centroid_seq).substr(1,(old_centroid_seq.size() / 3) - 2);
+                            const auto ORF_hash = hasher{}(ORF_aa);
                             gene_prob = all_ORF_scores.at(ORF_hash);
                             
                             // update centroid score in place
@@ -728,7 +726,8 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
                 int centroid_ID = 0;
                 for (const auto& entry : centroid_map) {
                     const std::string& header = "-1_" + std::to_string(centroid_ID);
-                    const std::string& sequence = entry.second;
+                    const auto& ORF_info = entry.second;
+                    const std::string sequence = generate_sequence_nm(std::get<0>(ORF_info), std::get<1>(ORF_info), overlap, _ccdbg, _KmerArray);
 
                     // Write the header
                     outfile << ">" << header << "\n";
@@ -1207,14 +1206,14 @@ void Graph::_read_centroids (const std::string& fasta_file,
     while ((l = kseq_read(seq)) >= 0)
     {
         // read sequence
-        std::string& sequence = seq->seq.s;
-        std::string& header = seq->name.s;
+        std::string sequence = seq->seq.s;
+        std::string header = seq->name.s;
         
         // convert string to uppercase to avoid indexing issues
         //std::transform(sequence.begin(), sequence.end(), sequence.begin(), ::ascii_toupper_char);
         
         // map sequence to DBG
-        centroid_map[header] = map_seq_to_graph(sequence, _ccdbg);
+        centroid_map[header] = map_seq_to_graph(sequence, _ccdbg, kmer);
     }
 
     // destroy seq and fp objects
@@ -1279,7 +1278,8 @@ void clear_graph(Graph& g)
 }
 
 ORFNodeVector map_seq_to_graph(const std::string& sequence,
-                               const ColoredCDBG<MyUnitigMap>& ccdbg)
+                               const ColoredCDBG<MyUnitigMap>& ccdbg,
+                               const int kmer)
 {
     // TODO map sequence to DBG and get full coordinates
     std::vector<int> node_vector;

@@ -13,12 +13,13 @@ void assign_centroids(const ColoredCDBG<MyUnitigMap>& ccdbg,
                       const std::vector<Kmer>& head_kmer_arr,
                       const size_t& overlap, 
                       const ORFNodeVector& ORF_info,
-                      std::vector<std::tuple<int, int, size_t, size_t, std::shared_ptr<std::string>>>& centroid_vector)
+                      std::vector<std::tuple<int, int, size_t, size_t, std::shared_ptr<std::string>>>& centroid_vector);
 
 ORFGroupPair group_ORFs(const std::map<size_t, std::string>& ORF_file_paths,
                         const ColoredCDBG<MyUnitigMap>& ccdbg,
                         const std::vector<Kmer>& head_kmer_arr,
-                        const size_t& overlap);
+                        const size_t& overlap,
+                        tbb::concurrent_unordered_map<std::string, ORFNodeVector> centroid_map);
 
 std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> produce_clusters(const std::map<size_t, std::string>& ORF_file_paths,
                                const ColoredCDBG<MyUnitigMap>& ccdbg,

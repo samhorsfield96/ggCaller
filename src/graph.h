@@ -110,6 +110,20 @@ class Graph {
                      const bool is_ref,
                      const std::unordered_set<std::string>& ref_set,
                      const std::string& path_dir);
+    
+    GraphTuple update (const std::string& graphfile,
+                       const std::string& coloursfile,
+                       const std::string& infile1,
+                       const std::string& infile2,
+                       const std::vector<std::string>& stop_codons_for,
+                       const std::vector<std::string>& stop_codons_rev,
+                       const std::vector<std::string>& start_codons_for,
+                       const std::vector<std::string>& start_codons_rev,
+                       size_t num_threads,
+                       bool is_ref,
+                       const std::unordered_set<std::string>& ref_set,
+                       const std::string& path_dir,
+                       const bool write_graph);
 
     // get graph object from serialised file
     void in(const std::string& infile,
@@ -142,7 +156,8 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> findGene
                                                                                     const std::string& cluster_file,
                                                                                     const float& score_tolerance,
                                                                                     const std::string& tmp_dir,
-                                                                                    const std::string& path_dir);
+                                                                                    const std::string& path_dir,
+                                                                                    const bool update);
 
 
 std::pair<RefindMap, bool> refind_gene(const size_t& colour_ID,
@@ -236,7 +251,8 @@ std::unordered_map<size_t, std::unordered_set<size_t>> read_edge_file(const std:
 void clear_graph(Graph& g);
 
 ORFNodeVector map_seq_to_graph(const std::string& sequence,
-                               const ColoredCDBG<MyUnitigMap>& ccdbg);
+                               const ColoredCDBG<MyUnitigMap>& ccdbg,
+                               const int kmer);
 
 //void use_count(std::shared_ptr<Graph> sp);
 
