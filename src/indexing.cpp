@@ -14,7 +14,6 @@ ColoredCDBG<MyUnitigMap> buildGraph (const std::string& infile_1,
     std::ifstream infile2(infile_2);
     CCDBG_Build_opt opt;
 
-
     opt.k = kmer;
     opt.nb_threads = threads;
     opt.verbose = verb;

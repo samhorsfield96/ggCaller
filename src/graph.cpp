@@ -201,23 +201,38 @@ GraphTuple Graph::update (const std::string& graphfile,
         is_ref = 0;
     }
 
-    // generate graph, writing if write_graph == true
-    size_t lastindex = infile1.find_last_of(".");
-    std::string outgraph = infile1.substr(0, lastindex);
-    ColoredCDBG<MyUnitigMap> _ccdbg_b = buildGraph(infile1, infile2, is_ref, kmer, num_threads, false, false, outgraph);
+    // generate graph, do not write
+    ColoredCDBG<MyUnitigMap> ccdbg_b = buildGraph(infile1, infile2, is_ref, kmer, num_threads, false, false, "NA");
 
     // get colour names for new graph
-    std::vector<std::string> input_colours_b = _ccdbg_b.getColorNames();
+    std::vector<std::string> input_colours_b = ccdbg_b.getColorNames();
     // get the number of colours for new graph
-    size_t nb_colours_b = _ccdbg_b.getNbColors();
+    size_t nb_colours_b = ccdbg_b.getNbColors();
 
     // merge graphs
-    _ccdbg.merge(move(_ccdbg_b), num_threads, false);
+    {
+        size_t lastindex = graphfile.find_last_of(".");
+        std::string outpref = graphfile.substr(0, lastindex) + "_merged";
+        
+        ColoredCDBG<MyUnitigMap>& ccdbg_1 = _ccdbg;
+        ColoredCDBG<MyUnitigMap>& ccdbg_2 = ccdbg_b;
+        ccdbg_1.merge(std::move(ccdbg_2), num_threads, false);
 
+        CCDBG_Build_opt opt;
+        opt.k = kmer;
+        opt.nb_threads = num_threads;
+        opt.verbose = false;
+        opt.prefixFilenameOut = outpref;
+
+        ccdbg_1.simplify(opt.deleteIsolated, opt.clipTips, opt.verbose);
+        ccdbg_1.buildColors(opt);
+        ccdbg_1.write(opt.prefixFilenameOut, opt.nb_threads, opt.verbose);
+    }
+    
     // get colour names for full graph
     std::vector<std::string> input_colours = _ccdbg.getColorNames();
     // get the number of colours for full graph
-    size_t nb_colours = _ccdbg_b.getNbColors();
+    size_t nb_colours = _ccdbg.getNbColors();
 
     // generate codon index for graph
     cout << "Generating graph stop codon index..." << endl;
@@ -682,9 +697,9 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
                             
                             // get score
                             std::string old_centroid_seq = generate_sequence_nm(std::get<0>(old_centroid_info), std::get<1>(old_centroid_info), overlap, _ccdbg, _KmerArray);
-                            const auto ORF_aa = translate(old_centroid_seq).substr(1,(ORF_DNA.size() / 3) - 2);
-                            ORF_hash = hasher{}(ORF_aa);
-                            gene_prob = all_ORF_scores.at(ORF_hash);
+                            const auto ORF_aa = translate(old_centroid_seq).substr(1,(old_centroid_seq.size() / 3) - 2);
+                            const float ORF_hash = hasher{}(ORF_aa);
+                            const float gene_prob = all_ORF_scores.at(ORF_hash);
                             
                             // update ORFToScoreMap if prob not already present
                             if (ORFToScoreMap[colour_ID].find(ORF_entry.first) == ORFToScoreMap[colour_ID].end())
