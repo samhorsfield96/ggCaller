@@ -214,9 +214,10 @@ GraphTuple Graph::update (const std::string& graphfile,
         size_t lastindex = graphfile.find_last_of(".");
         std::string outpref = graphfile.substr(0, lastindex) + "_merged";
         
-        ColoredCDBG<MyUnitigMap>& ccdbg_1 = _ccdbg;
-        ColoredCDBG<MyUnitigMap>& ccdbg_2 = ccdbg_b;
-        ccdbg_1.merge(std::move(ccdbg_2), num_threads, false);
+        //ColoredCDBG<MyUnitigMap>& ccdbg_1 = _ccdbg;
+        //ColoredCDBG<MyUnitigMap>& ccdbg_2 = ccdbg_b;
+        //ccdbg_1.merge(ccdbg_2, num_threads, false);
+        _ccdbg.merge(std::move(ccdbg_b), num_threads, false);
 
         CCDBG_Build_opt opt;
         opt.k = kmer;
@@ -224,9 +225,9 @@ GraphTuple Graph::update (const std::string& graphfile,
         opt.verbose = false;
         opt.prefixFilenameOut = outpref;
 
-        ccdbg_1.simplify(opt.deleteIsolated, opt.clipTips, opt.verbose);
-        ccdbg_1.buildColors(opt);
-        ccdbg_1.write(opt.prefixFilenameOut, opt.nb_threads, opt.verbose);
+        _ccdbg.simplify(opt.deleteIsolated, opt.clipTips, opt.verbose);
+        _ccdbg.buildColors(opt);
+        _ccdbg.write(opt.prefixFilenameOut, opt.nb_threads, opt.verbose);
     }
     
     // get colour names for full graph
@@ -423,14 +424,31 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
         if (update)
         {
             {
+                std::unordered_map<size_t, float> all_TIS_scores_std;
                 std::ifstream ifs(tmp_dir + "all_TIS_scores.tmp");
                 boost::archive::text_iarchive ia(ifs);
-                ia >> all_TIS_scores;
+                ia >> all_TIS_scores_std;
+
+                for (auto& entry : all_TIS_scores_std)
+                {
+                    all_TIS_scores[std::move(entry.first)] = std::move(entry.second);
+                }
             }
             {
+                std::unordered_map<size_t, std::unordered_set<int>> start_chosen_std;
                 std::ifstream ifs(tmp_dir + "start_chosen.tmp");
                 boost::archive::text_iarchive ia(ifs);
-                ia >> start_chosen;
+                ia >> start_chosen_std;
+
+                for (auto& entry : start_chosen_std)
+                {
+                    tbb::concurrent_unordered_set<int> concur_set;
+                    for (auto& set_entry : entry.second)
+                    {
+                        concur_set.insert(set_entry);
+                    }
+                    start_chosen[std::move(entry.first)] = std::move(concur_set);
+                }
             }
         }
 
@@ -511,20 +529,37 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
 
         // save all_TIS_scores
         {
+            std::unordered_map<size_t, float> all_TIS_scores_std;
+            for (auto& entry : all_TIS_scores)
+            {
+                all_TIS_scores_std[std::move(entry.first)] = std::move(entry.second);
+            }
+
             std::string out_path = tmp_dir + "all_TIS_scores.tmp";
             std::ofstream ofs(out_path);
             boost::archive::text_oarchive oa(ofs);
             // write class instance to archive
-            oa << all_TIS_scores;
+            oa << all_TIS_scores_std;
         }
 
         // save start_chosen
         {
+            std::unordered_map<size_t, std::unordered_set<int>> start_chosen_std;
+            for (auto& entry : start_chosen)
+            {
+                std::unordered_set<int> concur_set;
+                for (auto& set_entry : entry.second)
+                {
+                    concur_set.insert(set_entry);
+                }
+                start_chosen_std[std::move(entry.first)] = std::move(concur_set);
+            }
+            
             std::string out_path = tmp_dir + "start_chosen.tmp";
             std::ofstream ofs(out_path);
             boost::archive::text_oarchive oa(ofs);
             // write class instance to archive
-            oa << start_chosen;
+            oa << start_chosen_std;
         }
 
     }
@@ -572,9 +607,15 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
         if (update)
         {
             {
+                std::unordered_map<size_t, float> all_ORF_scores_std;
                 std::ifstream ifs(tmp_dir + "all_ORF_scores.tmp");
                 boost::archive::text_iarchive ia(ifs);
-                ia >> all_ORF_scores;
+                ia >> all_ORF_scores_std;
+
+                for (auto& entry : all_ORF_scores_std)
+                {
+                    all_ORF_scores[std::move(entry.first)] = std::move(entry.second);
+                }
             }
 
             // update centroid sequences from FASTA file
@@ -852,11 +893,17 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
 
         // save all_ORF_scores
         {
+            std::unordered_map<size_t, float> all_ORF_scores_std;
+            for (auto& entry : all_ORF_scores)
+            {
+                all_ORF_scores_std[std::move(entry.first)] = std::move(entry.second);
+            }
+
             std::string out_path = tmp_dir + "all_ORF_scores.tmp";
             std::ofstream ofs(out_path);
             boost::archive::text_oarchive oa(ofs);
             // write class instance to archive
-            oa << all_ORF_scores;
+            oa << all_ORF_scores_std;
         }
     }
 
