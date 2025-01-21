@@ -13,7 +13,9 @@ void assign_centroids(const ColoredCDBG<MyUnitigMap>& ccdbg,
                       const std::vector<Kmer>& head_kmer_arr,
                       const size_t& overlap, 
                       const ORFNodeVector& ORF_info,
-                      std::vector<std::tuple<int, int, size_t, size_t, std::shared_ptr<std::string>>>& centroid_vector);
+                      std::vector<std::tuple<int, int, size_t, size_t, std::shared_ptr<std::string>>>& centroid_vector,
+                      const int colour,
+                      const int ORF_ID);
 
 ORFGroupPair group_ORFs(const std::map<size_t, std::string>& ORF_file_paths,
                         const ColoredCDBG<MyUnitigMap>& ccdbg,
@@ -31,5 +33,8 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
 
 double align_seqs(const std::string& ORF1_aa,
                   const std::string& ORF2_aa);
+
+std::pair<int,int> split_ID(const std::string& str,
+                            const char delim);    
 
 #endif //GGCALLER_ORF_CLUSTERING_H

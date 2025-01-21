@@ -4,7 +4,9 @@ void assign_centroids(const ColoredCDBG<MyUnitigMap>& ccdbg,
                       const std::vector<Kmer>& head_kmer_arr,
                       const size_t& overlap, 
                       const ORFNodeVector& ORF_info,
-                      std::vector<std::tuple<int, int, size_t, size_t, std::shared_ptr<std::string>>>& centroid_vector)
+                      std::vector<std::tuple<int, int, size_t, size_t, std::shared_ptr<std::string>>>& centroid_vector,
+                      const int colour,
+                      const int ORF_ID)
 {
     // iterate over nodes traversed by ORF
     const auto& ORF_nodes = std::get<0>(ORF_info);
@@ -61,22 +63,22 @@ void assign_centroids(const ColoredCDBG<MyUnitigMap>& ccdbg,
 
                     if (ORF_hash < centroid_hash)
                     {
-                        centroid_ID = {colour.first, ORF_entry.first, ORF_hash, ORF_length, std::make_shared<std::string>(ORF_seq)};
+                        centroid_ID = {colour, ORF_ID, ORF_hash, ORF_length, std::make_shared<std::string>(ORF_seq)};
                     } else if (ORF_hash == centroid_hash)
                     {
-                        if (colour.first < std::get<0>(centroid_ID))
+                        if (colour < std::get<0>(centroid_ID))
                         {
-                            centroid_ID = {colour.first, ORF_entry.first, ORF_hash, ORF_length, std::make_shared<std::string>(ORF_seq)};
+                            centroid_ID = {colour, ORF_ID, ORF_hash, ORF_length, std::make_shared<std::string>(ORF_seq)};
                         }
                     }
                 } else
                 {
-                    centroid_ID = {colour.first, ORF_entry.first, ORF_hash, ORF_length, std::make_shared<std::string>(ORF_seq)};
+                    centroid_ID = {colour, ORF_ID, ORF_hash, ORF_length, std::make_shared<std::string>(ORF_seq)};
                 }
             }
         } else
         {
-            centroid_vector[node_ID] = {colour.first, ORF_entry.first, ORF_hash, ORF_length, std::make_shared<std::string>(ORF_seq)};
+            centroid_vector[node_ID] = {colour, ORF_ID, ORF_hash, ORF_length, std::make_shared<std::string>(ORF_seq)};
         }
     }
 }
@@ -104,12 +106,14 @@ ORFGroupPair group_ORFs(const std::map<size_t, std::string>& ORF_file_paths,
         const auto& ORF_info = ORF_entry.second;
 
         // extract centroid_ID
-        int centroid_ID = stoi(ORF_entry.first, 2);
+        std::string::size_type sz;
+        auto centroid_pair = split_ID(ORF_entry.first, '_');
+        const auto centroid_ID = std::get<1>(centroid_pair);
 
         // add previous centroids as -1 index
         ORF_length_list.push_back({std::get<2>(ORF_info), {-1, centroid_ID}});
 
-        assign_centroids(ccdbg, head_kmer_arr, overlap, ORF_info, centroid_vector);
+        assign_centroids(ccdbg, head_kmer_arr, overlap, ORF_info, centroid_vector, -1, centroid_ID);
     }
 
     // iterate over each ORF sequence with specific colours combination
@@ -130,7 +134,7 @@ ORFGroupPair group_ORFs(const std::map<size_t, std::string>& ORF_file_paths,
 
             ORF_length_list.push_back({std::get<2>(ORF_info), {colour.first, ORF_entry.first}});
 
-            assign_centroids(ccdbg, head_kmer_arr, overlap, ORF_info, centroid_vector);
+            assign_centroids(ccdbg, head_kmer_arr, overlap, ORF_info, centroid_vector, colour.first, ORF_entry.first);
         }
     }
 
@@ -340,4 +344,21 @@ double align_seqs(const std::string& ORF1_aa,
     // convert edit distance into percent identity
     double perc_id = 1 - ((double)edit_distance / (double)ORF2_aa.size());
     return perc_id;
+}
+
+std::pair<int,int> split_ID(const std::string& str,
+                            const char delim)
+{
+    // Find the position of the delimiter
+    size_t pos = str.find(delim);
+    
+    // Extract the second number as a substring
+    std::string num1_str = str.substr(0, pos);
+    std::string num2_str = str.substr(pos + 1);
+    
+    // Convert the substring to an integer
+    int num1 = std::stoi(num1_str);
+    int num2 = std::stoi(num2_str);
+
+    return {num1, num2};
 }
