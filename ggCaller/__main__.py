@@ -408,6 +408,9 @@ def main():
     # ensure trailing slash present
     Path_dir = os.path.join(Path_dir, "")
 
+    # determine if graph is being updated
+    update = False
+    
     # if build graph specified, build graph and then call ORFs
     if (options.graph is not None) and (options.colours is not None) and (options.query is None):
         graph_tuple = graph.read(options.graph, options.colours, stop_codons_for, stop_codons_rev,
@@ -415,18 +418,20 @@ def main():
     # if graph specified with prev_run and no query, will be updating the graph
     elif (options.graph is not None) and (options.colours is not None) and (options.query is None) and \
             (options.prev_run is not None) and (options.refs is not None or options.reads is not None):
+        
+        update = True
         # references only
         if (options.refs is not None and options.reads is None):
-            graph_tuple = graph.update(options.graph, options.colours, stop_codons_for, stop_codons_rev,
-                                    start_codons_for, start_codons_rev, options.threads, is_ref, ref_set, Path_dir)
+            graph_tuple = graph.update(options.graph, options.colours, options.refs, "NA", stop_codons_for, stop_codons_rev,
+                                    start_codons_for, start_codons_rev, options.threads, is_ref, ref_set, Path_dir, options.no_write_graph)
         # reads only
         elif (options.refs is None and options.reads is not None):
-            graph_tuple = graph.update(options.graph, options.colours, stop_codons_for, stop_codons_rev,
-                        start_codons_for, start_codons_rev, options.threads, is_ref, ref_set, Path_dir)
+            graph_tuple = graph.update(options.graph, options.colours, options.reads, "NA", stop_codons_for, stop_codons_rev,
+                                    start_codons_for, start_codons_rev, options.threads, is_ref, ref_set, Path_dir, options.no_write_graph)
         # refs and reads
         elif (options.refs is not None and options.reads is not None):
-            graph_tuple = graph.update(options.graph, options.colours, stop_codons_for, stop_codons_rev,
-                        start_codons_for, start_codons_rev, options.threads, is_ref, ref_set, Path_dir)
+            graph_tuple = graph.update(options.graph, options.colours, options.refs, options.reads, stop_codons_for, stop_codons_rev,
+                                    start_codons_for, start_codons_rev, options.threads, is_ref, ref_set, Path_dir, options.no_write_graph)
     # query unitigs in previous saved ggc graph
     elif (options.graph is not None) and (options.colours is not None) and (options.refs is None) and \
             (options.query is not None):
@@ -545,7 +550,7 @@ def main():
                                  TIS_model_file, options.min_orf_score, options.min_path_score,
                                  options.max_orf_orf_distance, not options.no_clustering,
                                  options.identity_cutoff, options.len_diff_cutoff, options.threads, cluster_file,
-                                 options.score_tolerance, ORFMap_dir, Path_dir)
+                                 options.score_tolerance, ORFMap_dir, Path_dir, update)
 
     ORF_file_paths, Edge_file_paths = file_tuple
 
