@@ -482,7 +482,8 @@ NodeColourVector index_graph(std::vector<Kmer>& head_kmer_arr,
                              const std::vector<std::string>& input_colours,
                              const boost::dynamic_bitset<>& ref_set,
                              robin_hood::unordered_map<std::string, size_t>& start_freq,
-                             const std::string& path_dir)
+                             const std::string& path_dir,
+                             boost::dynamic_bitset<>& _NewSet)
 {
     // get all head kmers and add IDs
     size_t unitig_id = 1;
@@ -525,7 +526,7 @@ NodeColourVector index_graph(std::vector<Kmer>& head_kmer_arr,
             // add to node_colour_map_private only if genome is new
             for (size_t i = 0; i < um_data->full_colour().size(); i++)
             {
-                if (um_data->full_colour()[i] && (bool)_NewSet)
+                if (um_data->full_colour()[i] && (bool)_NewSet[i])
                 {
                     node_colour_vector_private[i].push_back(um_data->get_id());
                 }
@@ -548,7 +549,7 @@ NodeColourVector index_graph(std::vector<Kmer>& head_kmer_arr,
     std::vector<size_t> ref_index;
     for (int i = 0; i < input_colours.size(); i++)
     {
-        if ((bool)ref_set[i] && (bool)_NewSet)
+        if ((bool)ref_set[i] && (bool)_NewSet[i])
         {
             ref_index.push_back(i);
         }

@@ -68,6 +68,7 @@ NodeColourVector index_graph(std::vector<Kmer>& head_kmer_arr,
                              const std::vector<std::string>& input_colours,
                              const boost::dynamic_bitset<>& ref_set,
                              robin_hood::unordered_map<std::string, size_t>& start_freq,
-                             const std::string& path_dir);
+                             const std::string& path_dir,
+                             boost::dynamic_bitset<>& _NewSet);
 
 #endif //INDEXING_H
