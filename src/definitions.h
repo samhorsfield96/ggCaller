@@ -111,7 +111,7 @@ typedef std::map<size_t, bool> NodeStrandMap;
 // mapping of overlapping ORFs, detailed by ORFIDMap
 typedef std::unordered_map<size_t, std::unordered_map<size_t, std::pair<char, size_t>>> ORFOverlapMap;
 // tuple containing grouping information for ORFs filtered by Balrog
-typedef std::pair<std::vector<std::tuple<int, int, size_t, size_t, std::shared_ptr<std::string>>>, std::vector<std::pair<size_t, std::pair<size_t, size_t>>>> ORFGroupPair;
+typedef std::pair<std::vector<std::tuple<int, int, size_t, size_t, std::shared_ptr<std::string>>>, std::vector<std::pair<size_t, std::pair<int, int>>>> ORFGroupPair;
 // map of ORFs to clusters, with centroid as first entry
 typedef std::unordered_map<std::string, std::vector<std::pair<size_t, size_t>>> ORFClusterMap;
 // tuple of ORF sequence, node list, node coordinates for orientation and the contig locations if using FM index

@@ -322,8 +322,8 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
         {
             for (const auto& entry : final_clusters[ORF_ID_str])
             {
-                std::string homolog_ID_str = std::to_string(homolog_ID.second.first) + "_" + std::to_string(homolog_ID.second.second);
-                old_clusters[homolog_ID_str].push_back(entry.first);
+                std::string homolog_ID_str = std::to_string(entry.first) + "_" + std::to_string(entry.second);
+                old_clusters[homolog_ID_str] = ORF_ID_str;
             }
         }
     }
