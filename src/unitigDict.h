@@ -4,7 +4,7 @@
 #include "definitions.h"
 #include <boost/serialization/access.hpp>
 
-// unitigDict class declaration
+// unitigDict class declaration, based on pyfrost https://github.com/broadinstitute/pyfrost/tree/62e65aa2531270a79fd159cce141162d3051496b
 class MyUnitigMap : public CCDBG_Data_t<MyUnitigMap>, CDBG_Data_t<MyUnitigMap> {
     public:
 
@@ -16,6 +16,9 @@ class MyUnitigMap : public CCDBG_Data_t<MyUnitigMap>, CDBG_Data_t<MyUnitigMap> {
 
     // Extraction method for ColoredCDBG
     void extract(const UnitigColors* uc_dest, const UnitigColorMap<MyUnitigMap>& um_src, const bool last_extraction);
+
+    template <class T, class U, bool is_const>
+    void merge(const UnitigColorMap<MyUnitigMap>& um_dest, const UnitigMap<DataAccessor<T>, DataStorage<U>, is_const>& um_src);
 
     // serialisation method
     string serialize(const const_UnitigColorMap<MyUnitigMap>& um_src) const;

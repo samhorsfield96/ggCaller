@@ -214,10 +214,10 @@ GraphTuple Graph::update (const std::string& graphfile,
         size_t lastindex = graphfile.find_last_of(".");
         std::string outpref = graphfile.substr(0, lastindex) + "_merged";
         
-        //ColoredCDBG<MyUnitigMap>& ccdbg_1 = _ccdbg;
-        //ColoredCDBG<MyUnitigMap>& ccdbg_2 = ccdbg_b;
-        //ccdbg_1.merge(ccdbg_2, num_threads, false);
-        _ccdbg.merge(std::move(ccdbg_b), num_threads, false);
+        ColoredCDBG<MyUnitigMap>& ccdbg_1 = _ccdbg;
+        ColoredCDBG<MyUnitigMap>& ccdbg_2 = ccdbg_b;
+        ccdbg_1.merge(std::move(ccdbg_2), num_threads, false);
+        //_ccdbg.merge(ccdbg_b, num_threads, false);
 
         CCDBG_Build_opt opt;
         opt.k = kmer;
@@ -1245,7 +1245,7 @@ void Graph::_index_graph (const std::vector<std::string>& stop_codons_for,
                           const std::string& path_dir)
 {
     float stop_codon_freq = 0;
-    _NodeColourVector = std::move(index_graph(_KmerArray, _ccdbg, stop_codon_freq, stop_codons_for, stop_codons_rev, start_codons_for, start_codons_rev, kmer, nb_colours, input_colours, _RefSet, _StartFreq, path_dir));
+    _NodeColourVector = std::move(index_graph(_KmerArray, _ccdbg, stop_codon_freq, stop_codons_for, stop_codons_rev, start_codons_for, start_codons_rev, kmer, nb_colours, input_colours, _RefSet, _StartFreq, path_dir, _NewSet));
     _stop_freq= stop_codon_freq;
 }
 
