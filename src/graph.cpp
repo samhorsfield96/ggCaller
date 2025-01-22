@@ -48,6 +48,8 @@ GraphTuple Graph::build (const std::string& infile1,
 
     // store is_ref information in bitvector
     _RefSet.resize(nb_colours);
+    _NewSet.resize(nb_colours);
+    _NewSet.set();
     // assume all colours are references
     if (is_ref && ref_set.empty())
     {
@@ -122,6 +124,8 @@ GraphTuple Graph::read (const std::string& graphfile,
 
     // store is_ref information in bitvector
     _RefSet.resize(nb_colours);
+    _NewSet.resize(nb_colours);
+    _NewSet.set();
     // assume all colours are references
     if (is_ref && ref_set.empty())
     {
@@ -697,6 +701,9 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
                             const auto ORF_hash = hasher{}(ORF_aa);
                             gene_prob = all_ORF_scores.at(ORF_hash);
                             
+                            cout << "Current_cent: " << ORF_ID_str << "\nseq: " << centroid_seq << endl;
+                            cout << "Prev_cent: " << old_centroid_ID << "\nseq: " << old_centroid_seq << endl;
+
                             // update centroid score in place
                             score_cluster(std::get<4>(centroid_info), gene_prob, centroid_seq, std::get<2>(centroid_info));
                         } else
@@ -1276,6 +1283,12 @@ void Graph::_read_centroids (const std::string& fasta_file,
         
         // map sequence to DBG
         centroid_map[header] = map_seq_to_graph(sequence, _ccdbg, kmer);
+
+        // test for sequence matching
+        std::string centroid_seq = generate_sequence_nm(std::get<0>(centroid_map[header]), std::get<1>(centroid_map[header]), kmer - 1, _ccdbg, _KmerArray);
+
+        cout << "Original:\n" << sequence << endl;
+        cout << "New:\n" << centroid_seq << endl;
     }
 
     // destroy seq and fp objects
