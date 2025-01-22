@@ -24,10 +24,8 @@ void MyUnitigMap::concat(const UnitigColorMap<MyUnitigMap>& um_dest, const Uniti
     return;
 }
 
-// TODO this is causing error with compiler
 // merge method for ColoredCDBG
-template <class T, class S, bool is_const>
-void MyUnitigMap::merge(const UnitigColorMap<MyUnitigMap>& um_dest, const UnitigMap<DataAccessor<T>, DataStorage<S>, is_const>& um_src){
+void MyUnitigMap::merge(const UnitigColorMap<MyUnitigMap>& um_dest, const const_UnitigColorMap<MyUnitigMap>& um_src){
     return;
 }
 

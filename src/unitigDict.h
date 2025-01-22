@@ -17,8 +17,8 @@ class MyUnitigMap : public CCDBG_Data_t<MyUnitigMap>, CDBG_Data_t<MyUnitigMap> {
     // Extraction method for ColoredCDBG
     void extract(const UnitigColors* uc_dest, const UnitigColorMap<MyUnitigMap>& um_src, const bool last_extraction);
 
-    template <class T, class S, bool is_const>
-    void merge(const UnitigColorMap<MyUnitigMap>& um_dest, const UnitigMap<DataAccessor<T>, DataStorage<S>, is_const>& um_src);
+    //template <class T>
+    void merge(const UnitigColorMap<MyUnitigMap>& um_dest, const const_UnitigColorMap<MyUnitigMap>& um_src);
 
     // serialisation method
     string serialize(const const_UnitigColorMap<MyUnitigMap>& um_src) const;
