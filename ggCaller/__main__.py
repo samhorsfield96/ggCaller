@@ -412,24 +412,28 @@ def main():
     update = False
     
     # if build graph specified, build graph and then call ORFs
-    if (options.graph is not None) and (options.colours is not None) and (options.query is None):
+    if (options.graph is not None) and (options.colours is not None) and (options.query is None) and (options.prev_run is None):
         graph_tuple = graph.read(options.graph, options.colours, stop_codons_for, stop_codons_rev,
                                  start_codons_for, start_codons_rev, options.threads, is_ref, ref_set, Path_dir)
     # if graph specified with prev_run and no query, will be updating the graph
     elif (options.graph is not None) and (options.colours is not None) and (options.query is None) and \
             (options.prev_run is not None) and (options.refs is not None or options.reads is not None):
         
+        print("Updating workflow")
         update = True
         # references only
         if (options.refs is not None and options.reads is None):
+            print("Refs update")
             graph_tuple = graph.update(options.graph, options.colours, options.refs, "NA", stop_codons_for, stop_codons_rev,
                                     start_codons_for, start_codons_rev, options.threads, is_ref, ref_set, Path_dir, options.no_write_graph)
         # reads only
         elif (options.refs is None and options.reads is not None):
+            print("Reads update")
             graph_tuple = graph.update(options.graph, options.colours, options.reads, "NA", stop_codons_for, stop_codons_rev,
                                     start_codons_for, start_codons_rev, options.threads, is_ref, ref_set, Path_dir, options.no_write_graph)
         # refs and reads
         elif (options.refs is not None and options.reads is not None):
+            print("Refs and reads update")
             graph_tuple = graph.update(options.graph, options.colours, options.refs, options.reads, stop_codons_for, stop_codons_rev,
                                     start_codons_for, start_codons_rev, options.threads, is_ref, ref_set, Path_dir, options.no_write_graph)
     # query unitigs in previous saved ggc graph

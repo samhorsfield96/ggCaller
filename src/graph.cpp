@@ -181,9 +181,6 @@ GraphTuple Graph::update (const std::string& graphfile,
     {
         num_threads = 1;
     }
-
-    // read in compact coloured DBG
-    cout << "Starting coloured compacted DBG merge..." << endl;
     
     // persisitant variables
     std::string outpref = "";
@@ -200,6 +197,7 @@ GraphTuple Graph::update (const std::string& graphfile,
     // scope for merging graphs
     {
         // read in 1st graph
+        cout << "Reading original coloured compacted DBG..." << endl;
         ColoredCDBG<> ccdbg_a;
         ccdbg_a.read(graphfile, coloursfile, num_threads);
 
@@ -234,16 +232,13 @@ GraphTuple Graph::update (const std::string& graphfile,
             size_t lastindex = graphfile.find_last_of(".");
             outpref = graphfile.substr(0, lastindex) + "_merged";
             
-            //ColoredCDBG<MyUnitigMap>& ccdbg_1 = _ccdbg;
-            //ColoredCDBG<MyUnitigMap>& ccdbg_2 = ccdbg_b;
             cout << "Merging coloured compacted DBGs..." << endl;
-            //ccdbg_1.merge(std::move(ccdbg_2), num_threads, true);
-            ccdbg_a.merge(std::move(ccdbg_b), num_threads, true);
+            ccdbg_a.merge(std::move(ccdbg_b), num_threads, false);
 
             CCDBG_Build_opt opt;
             opt.k = kmer;
             opt.nb_threads = num_threads;
-            opt.verbose = true;
+            opt.verbose = false;
             opt.prefixFilenameOut = outpref;
 
             // add filenames to graph
@@ -257,18 +252,13 @@ GraphTuple Graph::update (const std::string& graphfile,
             }
 
             ccdbg_a.simplify(opt.deleteIsolated, opt.clipTips, opt.verbose);
-            cout << "Building colours for merged compacted DBGs..." << endl;
             ccdbg_a.buildColors(opt);
-            cout << "Writing merged compacted DBGs..." << endl;
             ccdbg_a.write(opt.prefixFilenameOut, opt.nb_threads);
         }
     }
     
 
     // read in compact coloured DBG
-    cout << "Reading coloured compacted DBG merge..." << endl;
-    cout << outpref + ".gfa" << endl;
-    cout << outpref + ".color.bfg" << endl;
     _ccdbg.read(outpref + ".gfa", outpref + ".color.bfg", num_threads);
 
     // get colour names for full graph
@@ -276,15 +266,11 @@ GraphTuple Graph::update (const std::string& graphfile,
     // get the number of colours for full graph
     size_t nb_colours = _ccdbg.getNbColors();
 
-    cout << "colours a: " << nb_colours_a << " b " << nb_colours_b << " all " << nb_colours << endl; 
-
-    // generate codon index for graph
-    cout << "Generating graph stop codon index..." << endl;
-    _index_graph(stop_codons_for, stop_codons_rev, start_codons_for, start_codons_rev, kmer, nb_colours, input_colours, path_dir);
 
     // store is_ref information in bitvector
     _RefSet.resize(nb_colours);
     _NewSet.resize(nb_colours);
+
     // assume all colours are references
     if (is_ref && ref_set.empty())
     {
@@ -307,26 +293,25 @@ GraphTuple Graph::update (const std::string& graphfile,
     {
         if (std::find(input_colours_a.begin(), input_colours_a.end(), input_colours[i]) != input_colours_a.end())
         {
-            cout << input_colours[i] << " old = true";
             _NewSet[i] = 0;
             _RefSet[i] = 1;
-        } else {
-            cout << input_colours[i] << " old = false";
-        }
+        } 
     }
 
     // create vector bool for reference sequences
+    cout << "output reference files..." << endl;
     std::vector<bool> ref_list(nb_colours, false);
     for (int i = 0; i < _RefSet.size(); i++)
     {
         if ((bool)_RefSet[i])
         {
-            cout << input_colours[i] << " ref = true";
             ref_list[i] = true;
-        } else {
-            cout << input_colours[i] << " ref = false";
         }
     }
+
+    // generate codon index for graph
+    cout << "Generating graph stop codon index..." << endl;
+    _index_graph(stop_codons_for, stop_codons_rev, start_codons_for, start_codons_rev, kmer, nb_colours, input_colours, path_dir);
 
     // make tuple containing all information needed in python back-end
     GraphTuple graph_tuple = std::make_tuple(input_colours, nb_colours, overlap, ref_list);
@@ -415,7 +400,6 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
     // determine which input_colours to analyse
     std::vector<std::string> input_colours;
     std::vector<size_t> input_colours_ID;
-
 
     // initilise all colour keys, determining which colours to analyse
     for (size_t colour_ID = 0; colour_ID < input_colours_all.size(); colour_ID++)
