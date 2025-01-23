@@ -206,6 +206,7 @@ GraphTuple Graph::update (const std::string& graphfile,
     }
 
     // generate graph, do not write
+    cout << "Building new coloured compacted DBG..." << endl;
     ColoredCDBG<MyUnitigMap> ccdbg_b = buildGraph(infile1, infile2, is_ref, kmer, num_threads, false, false, "NA");
 
     // get colour names for new graph
@@ -218,19 +219,23 @@ GraphTuple Graph::update (const std::string& graphfile,
         size_t lastindex = graphfile.find_last_of(".");
         std::string outpref = graphfile.substr(0, lastindex) + "_merged";
         
-        ColoredCDBG<MyUnitigMap>& ccdbg_1 = _ccdbg;
-        ColoredCDBG<MyUnitigMap>& ccdbg_2 = ccdbg_b;
-        ccdbg_1.merge(std::move(ccdbg_2), num_threads, false);
-        //_ccdbg.merge(ccdbg_b, num_threads, false);
+        //ColoredCDBG<MyUnitigMap>& ccdbg_1 = _ccdbg;
+        //ColoredCDBG<MyUnitigMap>& ccdbg_2 = ccdbg_b;
+        cout << "Merging coloured compacted DBGs..." << endl;
+        //ccdbg_1.merge(std::move(ccdbg_2), num_threads, true);
+        _ccdbg.merge(std::move(ccdbg_b), num_threads, true);
 
         CCDBG_Build_opt opt;
         opt.k = kmer;
         opt.nb_threads = num_threads;
-        opt.verbose = false;
+        opt.verbose = true;
         opt.prefixFilenameOut = outpref;
 
+        cout << "Simplfying merged coloured compacted DBGs..." << endl;
         _ccdbg.simplify(opt.deleteIsolated, opt.clipTips, opt.verbose);
+        cout << "Building colours for merged compacted DBGs..." << endl;
         _ccdbg.buildColors(opt);
+        cout << "Writing merged compacted DBGs..." << endl;
         _ccdbg.write(opt.prefixFilenameOut, opt.nb_threads, opt.verbose);
     }
     
