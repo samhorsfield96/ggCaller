@@ -26,12 +26,6 @@ void MyUnitigMap::concat(const UnitigColorMap<MyUnitigMap>& um_dest, const Uniti
 
 // merge method for ColoredCDBG
 void MyUnitigMap::merge(const UnitigColorMap<MyUnitigMap>& um_dest, const const_UnitigColorMap<MyUnitigMap>& um_src){
-        
-    std::string seq1 = um_dest.referenceUnitigToString();
-    std::string seq2 = um_src.referenceUnitigToString();
-
-    cout << "Merging: " << seq1 << " and " << seq2 << endl;
-
     return;
 }
 

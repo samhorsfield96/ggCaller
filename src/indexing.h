@@ -14,6 +14,15 @@ ColoredCDBG<MyUnitigMap> buildGraph (const std::string& infile_1,
                                      const bool write_graph,
                                      const std::string& output_prefix);
 
+ColoredCDBG<> buildGraphvoid (const std::string& infile_1,
+                        const std::string& infile_2,
+                        const bool is_ref,
+                        const int kmer,
+                        const int threads,
+                        const bool verb,
+                        const bool write_graph,
+                        const std::string& output_prefix);
+
 std::vector<std::size_t> findIndex(const std::string& seq,
                                    const std::string& subseq,
                                    const int start_index,

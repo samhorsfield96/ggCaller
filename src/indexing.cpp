@@ -1,14 +1,16 @@
 // ggCaller header
 #include "indexing.h"
 
-ColoredCDBG<MyUnitigMap> buildGraph (const std::string& infile_1,
-                                      const std::string& infile_2,
-                                      const bool is_ref,
-                                      const int kmer,
-                                      const int threads,
-                                      const bool verb,
-                                      const bool write_graph,
-                                      const std::string& output_prefix)
+ColoredCDBG<MyUnitigMap> buildGraphvoid (const std::string& infile_1,
+                        const std::string& infile_2,
+                        const bool is_ref,
+                        const int kmer,
+                        const int threads,
+                        const bool verb,
+                        const bool write_graph,
+                        const std::string& output_prefix,
+                        std::vector<std::string> _ref_paths,
+                        std::vector<std::string> _read_paths)
 {
     std::ifstream infile1(infile_1);
     std::ifstream infile2(infile_2);
@@ -24,25 +26,90 @@ ColoredCDBG<MyUnitigMap> buildGraph (const std::string& infile_1,
         while (std::getline(infile1, filename))
         {
             opt.filename_ref_in.push_back(filename);
+            _ref_paths.push_back(filename);
         }
     } else if (!is_ref && (infile_2 == "NA"))
     {
         while (std::getline(infile1, filename))
         {
             opt.filename_seq_in.push_back(filename);
+            _read_paths.push_back(filename);
         }
     } else {
         while (std::getline(infile1, filename))
         {
             opt.filename_ref_in.push_back(filename);
+            _ref_paths.push_back(filename);
         }
         while (std::getline(infile2, filename))
         {
             opt.filename_seq_in.push_back(filename);
+            _read_paths.push_back(filename);
         }
     }
 
     ColoredCDBG<MyUnitigMap> ccdbg(opt.k);
+    ccdbg.buildGraph(opt);
+    ccdbg.simplify(opt.deleteIsolated, opt.clipTips, opt.verbose);
+    ccdbg.buildColors(opt);
+
+    if (write_graph)
+    {
+        ccdbg.write(opt.prefixFilenameOut, opt.nb_threads, opt.verbose);
+    }
+
+    return ccdbg;
+}
+
+// overloaded function
+ColoredCDBG<> buildGraphvoid (const std::string& infile_1,
+                        const std::string& infile_2,
+                        const bool is_ref,
+                        const int kmer,
+                        const int threads,
+                        const bool verb,
+                        const bool write_graph,
+                        const std::string& output_prefix,
+                        std::vector<std::string> _ref_paths,
+                        std::vector<std::string> _read_paths)
+{
+    std::ifstream infile1(infile_1);
+    std::ifstream infile2(infile_2);
+    CCDBG_Build_opt opt;
+
+    opt.k = kmer;
+    opt.nb_threads = threads;
+    opt.verbose = verb;
+    opt.prefixFilenameOut = output_prefix;
+
+    std::string filename;
+    if (is_ref && (infile_2 == "NA")) {
+        while (std::getline(infile1, filename))
+        {
+            opt.filename_ref_in.push_back(filename);
+            _ref_paths.push_back(filename);
+        }
+    } else if (!is_ref && (infile_2 == "NA"))
+    {
+        while (std::getline(infile1, filename))
+        {
+            opt.filename_seq_in.push_back(filename);
+            _read_paths.push_back(filename);
+        }
+    } else {
+        while (std::getline(infile1, filename))
+        {
+            opt.filename_ref_in.push_back(filename);
+            _ref_paths.push_back(filename);
+        }
+        while (std::getline(infile2, filename))
+        {
+            opt.filename_seq_in.push_back(filename);
+            _read_paths.push_back(filename);
+        }
+    }
+
+    ColoredCDBG<> ccdbg(opt.k);
     ccdbg.buildGraph(opt);
     ccdbg.simplify(opt.deleteIsolated, opt.clipTips, opt.verbose);
     ccdbg.buildColors(opt);

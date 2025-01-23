@@ -38,7 +38,7 @@ GraphTuple Graph::build (const std::string& infile1,
     // generate graph, writing if write_graph == true
     size_t lastindex = infile1.find_last_of(".");
     std::string outgraph = infile1.substr(0, lastindex);
-    _ccdbg = buildGraph(infile1, infile2, is_ref, kmer, num_threads, false, write_graph, outgraph);
+    _ccdbg = buildGraph(infile1, infile2, is_ref, kmer, num_threads, false, write_graph, outgraph,  _ref_paths, _read_paths);
 
     // get the number of colours
     size_t nb_colours = _ccdbg.getNbColors();
@@ -183,66 +183,89 @@ GraphTuple Graph::update (const std::string& graphfile,
     }
 
     // read in compact coloured DBG
-    cout << "Reading coloured compacted DBG..." << endl;
+    cout << "Starting coloured compacted DBG merge..." << endl;
+    
+    // persisitant variables
+    std::string outpref = "";
+    size_t nb_colours_a = 0;
+    size_t nb_colours_b = 0;
+    int kmer = 0;
+    int overlap = 0;
+    std::vector<std::string> input_colours_a;
+    std::vector<std::string> input_colours_b;
 
     // set OMP number of threads
     omp_set_num_threads(num_threads);
 
-    // read in graph
-    _ccdbg.read(graphfile, coloursfile, num_threads);
-
-    //set local variables
-    int kmer = _ccdbg.getK();
-    int overlap = kmer - 1;
-
-    // get the number of colours
-    size_t nb_colours_a = _ccdbg.getNbColors();
-    // get colour names
-    std::vector<std::string> input_colours_a = _ccdbg.getColorNames();
-
-
-    if (infile2 != "NA") {
-        is_ref = 0;
-    }
-
-    // generate graph, do not write
-    cout << "Building new coloured compacted DBG..." << endl;
-    ColoredCDBG<MyUnitigMap> ccdbg_b = buildGraph(infile1, infile2, is_ref, kmer, num_threads, false, false, "NA");
-
-    // get colour names for new graph
-    std::vector<std::string> input_colours_b = ccdbg_b.getColorNames();
-    // get the number of colours for new graph
-    size_t nb_colours_b = ccdbg_b.getNbColors();
-
-    // merge graphs
+    // scope for merging graphs
     {
-        size_t lastindex = graphfile.find_last_of(".");
-        std::string outpref = graphfile.substr(0, lastindex) + "_merged";
-        
-        //ColoredCDBG<MyUnitigMap>& ccdbg_1 = _ccdbg;
-        //ColoredCDBG<MyUnitigMap>& ccdbg_2 = ccdbg_b;
-        cout << "Merging coloured compacted DBGs..." << endl;
-        //ccdbg_1.merge(std::move(ccdbg_2), num_threads, true);
-        _ccdbg.merge(std::move(ccdbg_b), num_threads, true);
+        // read in 1st graph
+        ColoredCDBG<> ccdbg_a;
+        ccdbg_a.read(graphfile, coloursfile, num_threads);
+        // need to add to  _ref_paths, _read_paths
 
-        CCDBG_Build_opt opt;
-        opt.k = kmer;
-        opt.nb_threads = num_threads;
-        opt.verbose = true;
-        opt.prefixFilenameOut = outpref;
+        //set local variables
+        kmer = ccdbg_a.getK();
+        overlap = kmer - 1;
 
-        cout << "Simplfying merged coloured compacted DBGs..." << endl;
-        _ccdbg.simplify(opt.deleteIsolated, opt.clipTips, opt.verbose);
-        cout << "Building colours for merged compacted DBGs..." << endl;
-        _ccdbg.buildColors(opt);
-        cout << "Writing merged compacted DBGs..." << endl;
-        _ccdbg.write(opt.prefixFilenameOut, opt.nb_threads, opt.verbose);
+        // get the number of colours
+        nb_colours_a = ccdbg_a.getNbColors();
+        // get colour names
+        input_colours_a = ccdbg_a.getColorNames();
+
+
+        if (infile2 != "NA") {
+            is_ref = 0;
+        }
+
+        // generate graph, do not write
+        cout << "Building new coloured compacted DBG..." << endl;
+        ColoredCDBG<> ccdbg_b = buildGraphvoid(infile1, infile2, is_ref, kmer, num_threads, false, false, "NA", _ref_paths, _read_paths);
+
+        // get colour names for new graph
+        input_colours_b = ccdbg_b.getColorNames();
+        // get the number of colours for new graph
+        nb_colours_b = ccdbg_b.getNbColors();
+
+        // merge graphs
+        {
+            size_t lastindex = graphfile.find_last_of(".");
+            outpref = graphfile.substr(0, lastindex) + "_merged";
+            
+            //ColoredCDBG<MyUnitigMap>& ccdbg_1 = _ccdbg;
+            //ColoredCDBG<MyUnitigMap>& ccdbg_2 = ccdbg_b;
+            cout << "Merging coloured compacted DBGs..." << endl;
+            //ccdbg_1.merge(std::move(ccdbg_2), num_threads, true);
+            ccdbg_a.merge(std::move(ccdbg_b), num_threads, true);
+
+            CCDBG_Build_opt opt;
+            opt.k = kmer;
+            opt.nb_threads = num_threads;
+            opt.verbose = true;
+            opt.prefixFilenameOut = outpref;
+
+            cout << "Simplfying merged coloured compacted DBGs..." << endl;
+            ccdbg_a.simplify(opt.deleteIsolated, opt.clipTips, opt.verbose);
+            cout << "Building colours for merged compacted DBGs..." << endl;
+            ccdbg_a.buildColors(opt);
+            cout << "Writing merged compacted DBGs..." << endl;
+            ccdbg_a.write(opt.prefixFilenameOut, opt.nb_threads);
+        }
     }
     
+
+    // read in compact coloured DBG
+    cout << "Reading coloured compacted DBG merge..." << endl;
+    cout << outpref + ".gfa" << endl;
+    cout << outpref + ".color.bfg" << endl;
+    _ccdbg.read(outpref + ".gfa", outpref + ".color.bfg", num_threads);
+
     // get colour names for full graph
     std::vector<std::string> input_colours = _ccdbg.getColorNames();
     // get the number of colours for full graph
     size_t nb_colours = _ccdbg.getNbColors();
+
+    cout << "colours a: " << nb_colours_a << " b " << nb_colours_b << " all " << nb_colours << endl; 
 
     // generate codon index for graph
     cout << "Generating graph stop codon index..." << endl;
@@ -273,8 +296,11 @@ GraphTuple Graph::update (const std::string& graphfile,
     {
         if (std::find(input_colours_a.begin(), input_colours_a.end(), input_colours[i]) != input_colours_a.end())
         {
+            cout << input_colours[i] << " old = true";
             _NewSet[i] = 0;
             _RefSet[i] = 1;
+        } else {
+            cout << input_colours[i] << " old = false";
         }
     }
 
@@ -284,7 +310,10 @@ GraphTuple Graph::update (const std::string& graphfile,
     {
         if ((bool)_RefSet[i])
         {
+            cout << input_colours[i] << " ref = true";
             ref_list[i] = true;
+        } else {
+            cout << input_colours[i] << " ref = false";
         }
     }
 
