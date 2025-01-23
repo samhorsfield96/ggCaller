@@ -6,13 +6,15 @@
 #include "translation.h"
 
 ColoredCDBG<MyUnitigMap> buildGraph (const std::string& infile_1,
-                                     const std::string& infile_2,
-                                     const bool is_ref,
-                                     const int kmer,
-                                     const int threads,
-                                     const bool verb,
-                                     const bool write_graph,
-                                     const std::string& output_prefix);
+                                        const std::string& infile_2,
+                                        const bool is_ref,
+                                        const int kmer,
+                                        const int threads,
+                                        const bool verb,
+                                        const bool write_graph,
+                                        const std::string& output_prefix,
+                                        std::vector<std::string>& _ref_paths,
+                                        std::vector<std::string>& _read_paths);
 
 ColoredCDBG<> buildGraphvoid (const std::string& infile_1,
                         const std::string& infile_2,
@@ -21,7 +23,9 @@ ColoredCDBG<> buildGraphvoid (const std::string& infile_1,
                         const int threads,
                         const bool verb,
                         const bool write_graph,
-                        const std::string& output_prefix);
+                        const std::string& output_prefix,
+                        std::vector<std::string>& _ref_paths,
+                        std::vector<std::string>& _read_paths);
 
 std::vector<std::size_t> findIndex(const std::string& seq,
                                    const std::string& subseq,

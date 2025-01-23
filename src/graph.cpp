@@ -202,7 +202,6 @@ GraphTuple Graph::update (const std::string& graphfile,
         // read in 1st graph
         ColoredCDBG<> ccdbg_a;
         ccdbg_a.read(graphfile, coloursfile, num_threads);
-        // need to add to  _ref_paths, _read_paths
 
         //set local variables
         kmer = ccdbg_a.getK();
@@ -212,7 +211,10 @@ GraphTuple Graph::update (const std::string& graphfile,
         nb_colours_a = ccdbg_a.getNbColors();
         // get colour names
         input_colours_a = ccdbg_a.getColorNames();
-
+        for (const auto& entry : input_colours_a)
+        {
+            _ref_paths.push_back(entry);
+        }
 
         if (infile2 != "NA") {
             is_ref = 0;
@@ -244,7 +246,16 @@ GraphTuple Graph::update (const std::string& graphfile,
             opt.verbose = true;
             opt.prefixFilenameOut = outpref;
 
-            cout << "Simplfying merged coloured compacted DBGs..." << endl;
+            // add filenames to graph
+            for (const auto& entry : _ref_paths)
+            {
+                opt.filename_ref_in.push_back(entry);
+            }
+            for (const auto& entry : _read_paths)
+            {
+                opt.filename_seq_in.push_back(entry);
+            }
+
             ccdbg_a.simplify(opt.deleteIsolated, opt.clipTips, opt.verbose);
             cout << "Building colours for merged compacted DBGs..." << endl;
             ccdbg_a.buildColors(opt);

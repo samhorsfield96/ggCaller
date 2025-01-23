@@ -1,7 +1,7 @@
 // ggCaller header
 #include "indexing.h"
 
-ColoredCDBG<MyUnitigMap> buildGraphvoid (const std::string& infile_1,
+ColoredCDBG<MyUnitigMap> buildGraph (const std::string& infile_1,
                         const std::string& infile_2,
                         const bool is_ref,
                         const int kmer,
@@ -9,8 +9,8 @@ ColoredCDBG<MyUnitigMap> buildGraphvoid (const std::string& infile_1,
                         const bool verb,
                         const bool write_graph,
                         const std::string& output_prefix,
-                        std::vector<std::string> _ref_paths,
-                        std::vector<std::string> _read_paths)
+                        std::vector<std::string>& _ref_paths,
+                        std::vector<std::string>& _read_paths)
 {
     std::ifstream infile1(infile_1);
     std::ifstream infile2(infile_2);
@@ -70,8 +70,8 @@ ColoredCDBG<> buildGraphvoid (const std::string& infile_1,
                         const bool verb,
                         const bool write_graph,
                         const std::string& output_prefix,
-                        std::vector<std::string> _ref_paths,
-                        std::vector<std::string> _read_paths)
+                        std::vector<std::string>& _ref_paths,
+                        std::vector<std::string>& _read_paths)
 {
     std::ifstream infile1(infile_1);
     std::ifstream infile2(infile_2);
