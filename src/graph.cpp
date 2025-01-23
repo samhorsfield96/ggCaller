@@ -498,7 +498,7 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
             // get whether colour is reference or not
             bool is_ref = ((bool)_RefSet[colour_ID]) ? true : false;
 
-            const auto& FM_fasta_file = input_colours.at(colour_ID);
+            const auto& FM_fasta_file = input_colours.at(colour_index);
 
             // if no FM_fasta_file specified, cannot generate FM Index
             if (FM_fasta_file == "NA")
@@ -972,7 +972,7 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
             // get whether colour is reference or not
             bool is_ref = ((bool)_RefSet[colour_ID]) ? true : false;
 
-            const auto& FM_fasta_file = input_colours.at(colour_ID);
+            const auto& FM_fasta_file = input_colours.at(colour_index);
 
             // if no FM_fasta_file specified, cannot generate FM Index
             if (FM_fasta_file == "NA")
