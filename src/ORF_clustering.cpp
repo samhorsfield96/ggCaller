@@ -47,7 +47,7 @@ void assign_centroids(const ColoredCDBG<MyUnitigMap>& ccdbg,
     for (const auto& node_ID : complete_nodes)
     {
         // determine the current size of the ORF and the centroid if previous assigned
-        if (std::get<0>(centroid_vector.at(node_ID)) != -1)
+        if (std::get<0>(centroid_vector.at(node_ID)) != -2)
         {
             auto& centroid_ID = centroid_vector[node_ID];
             const auto& centroid_length = std::get<3>(centroid_ID);
@@ -99,7 +99,7 @@ ORFGroupPair group_ORFs(const std::map<size_t, std::string>& ORF_file_paths,
 
     // initialise vector to hold all centroid IDs in, and dynamic bitset to determine which centroids have been assigned
     std::shared_ptr<std::string> placeholder = std::make_shared<std::string>("");
-    std::vector<std::tuple<int, int, size_t, size_t, std::shared_ptr<std::string>>> centroid_vector(head_kmer_arr.size(), {-1, -1, 0, 0, placeholder});
+    std::vector<std::tuple<int, int, size_t, size_t, std::shared_ptr<std::string>>> centroid_vector(head_kmer_arr.size(), {-2, -2, 0, 0, placeholder});
 
     // iterate over previous centroids first and add
     for (const auto& ORF_entry : centroid_map)
@@ -219,15 +219,15 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
                     // check that perc_len_diff is greater than cut-off, otherwise pass
                     double perc_len_diff = (double)ORF_len / (double)centroid_len;
 
-                    if (perc_len_diff < len_diff_cutoff)
-                    {
-                        continue;
-                    }
-
                     cout << "Centroid: " << Centroid_ID_string << "\n" << centroid_seq << endl;
                     cout << "Sequence: " << ORF_ID_string << "\n" << ORF_seq << endl;
 
                     cout << "perc_len_diff: " << perc_len_diff << endl;
+
+                    if (perc_len_diff < len_diff_cutoff)
+                    {
+                        continue;
+                    }
 
                     // calculate the perc_id between the current centroid and the ORF
                     double current_perc_id = align_seqs(centroid_seq, ORF_seq);
@@ -276,7 +276,6 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
     {
         // determine whether cluster contains old centroid
         bool clusters_with_old = false;
-        std::string old_centroid = "";
         const auto& ORF_ID = ORF_length_list.at(i).second;
 
         std::string ORF_ID_str = std::to_string(ORF_ID.first) + "_" + std::to_string(ORF_ID.second);
@@ -284,7 +283,6 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
         if (ORF_ID.first == -1)
         {
             clusters_with_old = true;
-            old_centroid = ORF_ID_str;
         }
 
         if (cluster_assigned.find(ORF_ID_str) != cluster_assigned.end())
@@ -310,12 +308,6 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
                 if (homolog_ID.first == -1)
                 {
                     clusters_with_old = true;
-
-                    // if multiple cenroids clustered, go with first assigned
-                    if (homolog_ID_str == "")
-                    {
-                        old_centroid = homolog_ID_str;
-                    }
                 }
 
                 // if the homolog is not already assigned to a cluster, assign and add to cluster_assigned
@@ -344,13 +336,6 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
             {
                 cluster_unassigned.push_back(ORF_ID);
             }
-
-            // if not assigned and not a centroid, then add to it's own cluster as singleton
-            //final_clusters[ORF_ID_str].push_back(ORF_ID);
-
-            //cout << "new centroid: " << ORF_ID_str << " sequence: " << ORF_ID_str << endl;
-            //prev_mappings[ORF_ID_str] = ORF_ID_str;
-            //cluster_assigned.insert(ORF_ID_str);
         }
 
         // assign all genes to those that cluster with old centroid
