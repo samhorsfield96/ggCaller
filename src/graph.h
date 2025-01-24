@@ -257,8 +257,7 @@ void clear_graph(Graph& g);
 
 ORFNodeVector map_seq_to_graph(const std::string& sequence,
                                const ColoredCDBG<MyUnitigMap>& ccdbg,
-                               const int kmer,
-                               const bool seq_present);
+                               const int kmer);
 
 //void use_count(std::shared_ptr<Graph> sp);
 

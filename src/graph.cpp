@@ -1308,18 +1308,10 @@ void Graph::_read_centroids (const std::string& fasta_file,
         std::string header = seq->name.s;
         
         // convert string to uppercase to avoid indexing issues
-        //std::transform(sequence.begin(), sequence.end(), sequence.begin(), ::ascii_toupper_char);
-        
-        bool seq_present = false;
-        const auto seq_to_find = "ATGAGCTTGTTGGAAACAGCTAAACGTCATCAACTAAATAGTGAGAAATATCTATCCTATCTTCTAGAATGTCTTCCAAACGAGGAAACTCTCGTAAACAAAGAGGTTTTAGAGGCTTATTTACCATGGACTAAAGTTGTACAAGAAAAGTGCAAATAA";
-
-        if (sequence == seq_to_find)
-        {
-            seq_present = true;
-        }
+        //std::transform(sequence.begin(), sequence.end(), sequence.begin(), ::ascii_toupper_char)
         
         // map sequence to DBG
-        centroid_map[header] = map_seq_to_graph(sequence, _ccdbg, kmer, seq_present);
+        centroid_map[header] = map_seq_to_graph(sequence, _ccdbg, kmer);
 
         // test for sequence matching
         std::string centroid_seq = generate_sequence_nm(std::get<0>(centroid_map[header]), std::get<1>(centroid_map[header]), kmer - 1, _ccdbg, _KmerArray);
@@ -1394,8 +1386,7 @@ void clear_graph(Graph& g)
 
 ORFNodeVector map_seq_to_graph(const std::string& sequence,
                                const ColoredCDBG<MyUnitigMap>& ccdbg,
-                               const int kmer,
-                               const bool seq_present)
+                               const int kmer)
 {
     // TODO map sequence to DBG and get full coordinates
     std::vector<int> node_vector;
@@ -1453,16 +1444,6 @@ ORFNodeVector map_seq_to_graph(const std::string& sequence,
             node_id = new_node_id;
             start_pos = new_start_pos;
             end_pos = new_end_pos;
-
-            if (seq_present)
-            {
-                cout << "node_id: " << node_id << endl;
-                cout << "start_pos: " << start_pos << endl;
-                cout << "end_pos: " << end_pos << endl;
-                cout << "strandness: " << strandness << endl;
-                cout << "seq: " << unitig << endl;
-                cout << "full_unitig: " << full_unitig << endl;
-            }
         }
     }
 
@@ -1470,16 +1451,6 @@ ORFNodeVector map_seq_to_graph(const std::string& sequence,
     if (node_id != 0) {
         node_vector.push_back(node_id);
         pos_vector.push_back({start_pos, end_pos});
-
-        if (seq_present)
-        {
-            cout << "node_id: " << node_id << endl;
-            cout << "start_pos: " << start_pos << endl;
-            cout << "end_pos: " << end_pos << endl;
-            cout << "strandness: " << strandness << endl;
-            cout << "seq: " << unitig << endl;
-            cout << "full_unitig: " << full_unitig << endl;
-        }
     }
     
     // create ORF_node_vector

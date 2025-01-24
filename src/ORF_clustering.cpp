@@ -59,14 +59,16 @@ void assign_centroids(const ColoredCDBG<MyUnitigMap>& ccdbg,
                 // if equal, then add lowest ORF index of two as centroid
                 if (ORF_length == centroid_length)
                 {
-                    const auto& centroid_hash = std::get<2>(centroid_ID);
-
-                    if (ORF_hash < centroid_hash)
+                    // add lowest colour as centroid
+                    if (colour < std::get<0>(centroid_ID))
                     {
                         centroid_ID = {colour, ORF_ID, ORF_hash, ORF_length, std::make_shared<std::string>(ORF_seq)};
-                    } else if (ORF_hash == centroid_hash)
+                    } else if (colour == std::get<0>(centroid_ID))
                     {
-                        if (colour < std::get<0>(centroid_ID))
+                        // add lowest hash as centroid
+                        const auto& centroid_hash = std::get<2>(centroid_ID);
+
+                        if (ORF_hash < centroid_hash)
                         {
                             centroid_ID = {colour, ORF_ID, ORF_hash, ORF_length, std::make_shared<std::string>(ORF_seq)};
                         }
@@ -146,10 +148,6 @@ ORFGroupPair group_ORFs(const std::map<size_t, std::string>& ORF_file_paths,
     return return_pair;
 }
 
-// TODO need to identify which genes cluster with old centroids/which replace old centroids, use the existing scoring to avoid recalculating.
-
-// why not store all centroid sequences in a list, then iterate through all genes as before
-// compare them to all centroids and calculate pairwise scores, cluster greedily
 std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> produce_clusters(const std::map<size_t, std::string>& ORF_file_paths,
                                const ColoredCDBG<MyUnitigMap>& ccdbg,
                                const std::vector<Kmer>& head_kmer_arr,
@@ -162,8 +160,10 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
     auto& centroid_vector = ORF_group_pair.first;
     auto& ORF_length_list = ORF_group_pair.second;
 
-    robin_hood::unordered_map<std::string, std::vector<std::pair<size_t, size_t>>> CentroidToORFMap;
+    robin_hood::unordered_map<std::string, std::vector<std::pair<int, int>>> CentroidToORFMap;
 
+    // keep track of genes that have have centroids assigned
+    robin_hood::unordered_set<std::string> centroid_found;
 
     // iterate over each ORF sequence with specific colours combination
     for (const auto& colour : ORF_file_paths)
@@ -186,6 +186,8 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
 
             std::unordered_set<std::string> CentroidComparisons;
 
+            std::string ORF_ID_string = std::to_string(colour.first) + "_" + std::to_string(ORF_entry.first);
+
             for (int i = 0; i < std::get<0>(ORF_info).size(); i++)
             {
                 const auto& node_indices = std::get<1>(ORF_info).at(i);
@@ -199,7 +201,6 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
                 const size_t current_node = abs(ORF_nodes.at(i)) - 1;
 
                 const auto& centroid_ID = centroid_vector.at(current_node);
-                std::string ORF_ID_string = std::to_string(colour.first) + "_" + std::to_string(ORF_entry.first);
                 std::string Centroid_ID_string = std::to_string(std::get<0>(centroid_ID)) + "_" + std::to_string(std::get<1>(centroid_ID));
                 
                 // if ORF and centroid have already been compared, pass
@@ -227,27 +228,46 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
                     // calculate the perc_id between the current centroid and the ORF
                     double current_perc_id = align_seqs(centroid_seq, ORF_seq);
 
+                    cout << "Centroid: " << Centroid_ID_string << "\n" << centroid_seq << endl;
+                    cout << "Sequence: " << ORF_ID_string << "\n" << ORF_seq << endl;
+                    cout << "identity: " << current_perc_id << endl;
+
                     // assign to all centroids with current_perc_id >= id_cutoff
                     if (current_perc_id >= id_cutoff)
                     {
                         CentroidToORFMap[Centroid_ID_string].push_back({colour.first, ORF_entry.first});
+                        centroid_found.insert(ORF_ID_string);
                     }
                 }
 
-                // ensure ORF and centoid not compared again
+                // ensure ORF and centroid not compared again
                 CentroidComparisons.insert(Centroid_ID_string);
             }
         }
     }
 
+    // remove all potential centroids that they themselves have been assigned to a centroid
+    for (const auto& ORF_ID_string : centroid_found) 
+    {
+        if (CentroidToORFMap.find(ORF_ID_string) != CentroidToORFMap.end())
+        {
+            CentroidToORFMap.erase(ORF_ID_string);
+        }
+    }
+    centroid_found.clear();
+
     // generate set to determine which ORFs have already been assigned clusters
     robin_hood::unordered_set<std::string> cluster_assigned;
+    std::vector<std::pair<int, int>> cluster_unassigned;
 
     // initialise map as intermediate to hold cluster IDs
     ORFClusterMap final_clusters;
 
     // initialise map to hold genes clustered with old clusters
     robin_hood::unordered_map<std::string, std::string> old_clusters;
+
+    // previous mappings
+    robin_hood::unordered_map<std::string, std::string> prev_mappings;
 
     // iterate over ORF_length_list, pulling out centroids and their assigned clustered ORFs
     for (size_t i = 0; i < ORF_length_list.size(); i++)
@@ -267,6 +287,7 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
 
         if (cluster_assigned.find(ORF_ID_str) != cluster_assigned.end())
         {
+            cout << "already assigned: " << ORF_ID_str << " to " << prev_mappings[ORF_ID_str] << endl;
             continue;
         }
 
@@ -278,6 +299,7 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
 
             // add the centroid to the cluster_assigned set
             cluster_assigned.insert(ORF_ID_str);
+            prev_mappings[ORF_ID_str] = ORF_ID_str;
 
             // add rest of homologs to centroid entry
             for (const auto& homolog_ID : CentroidToORFMap.at(ORF_ID_str))
@@ -298,11 +320,15 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
                 if (cluster_assigned.find(homolog_ID_str) == cluster_assigned.end())
                 {
                     final_clusters[ORF_ID_str].push_back(homolog_ID);
+
+                    cout << "current centroid: " << ORF_ID_str << " sequence: " << homolog_ID_str << endl;
                     cluster_assigned.insert(homolog_ID_str);
+                    prev_mappings[homolog_ID_str] = ORF_ID_str;
                 }
                 // if homolog already assigned to a cluster, skip
                 else
                 {
+                    cout << "previously assigned: " << homolog_ID_str << " to " << prev_mappings[homolog_ID_str] << endl;
                     continue;
                 }
             }
@@ -311,10 +337,18 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
             CentroidToORFMap.erase(ORF_ID_str);
         } else
         {
-            // if not assigned and not a centroid, then add to it's own cluster as singleton
-            final_clusters[ORF_ID_str].push_back(ORF_ID);
+            // if not assigned currently, leave and come back to it
+            if (cluster_assigned.find(ORF_ID_str) == cluster_assigned.end())
+            {
+                cluster_unassigned.push_back(ORF_ID);
+            }
 
-            cluster_assigned.insert(ORF_ID_str);
+            // if not assigned and not a centroid, then add to it's own cluster as singleton
+            //final_clusters[ORF_ID_str].push_back(ORF_ID);
+
+            //cout << "new centroid: " << ORF_ID_str << " sequence: " << ORF_ID_str << endl;
+            //prev_mappings[ORF_ID_str] = ORF_ID_str;
+            //cluster_assigned.insert(ORF_ID_str);
         }
 
         // assign all genes to those that cluster with old centroid
@@ -324,6 +358,30 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
             {
                 std::string homolog_ID_str = std::to_string(entry.first) + "_" + std::to_string(entry.second);
                 old_clusters[homolog_ID_str] = ORF_ID_str;
+
+                cout << "old centroid: " << ORF_ID_str << " sequence: " << homolog_ID_str << endl;
+            }
+        }
+    }
+
+    // iterate over unassigned clusters
+    for (const auto& ORF_ID : cluster_unassigned)
+    {
+        std::string ORF_ID_str = std::to_string(ORF_ID.first) + "_" + std::to_string(ORF_ID.second);
+        
+        // if still unassigned, assign to own centroid
+        if (cluster_assigned.find(ORF_ID_str) == cluster_assigned.end())
+        {
+            final_clusters[ORF_ID_str].push_back(ORF_ID);
+            cout << "new centroid: " << ORF_ID_str << " sequence: " << ORF_ID_str << endl;
+            prev_mappings[ORF_ID_str] = ORF_ID_str;
+            cluster_assigned.insert(ORF_ID_str);
+
+            // add to old clusters if necessary
+            if (ORF_ID.first == -1)
+            {
+                old_clusters[ORF_ID_str] = ORF_ID_str;
+                cout << "old centroid: " << ORF_ID_str << " sequence: " << ORF_ID_str << endl;
             }
         }
     }
