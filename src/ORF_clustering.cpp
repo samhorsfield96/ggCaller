@@ -214,22 +214,24 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
                 } else
                 {
                     const auto& centroid_len = std::get<3>(centroid_ID);
+                    const auto centroid_seq = *std::get<4>(centroid_ID);
 
                     // check that perc_len_diff is greater than cut-off, otherwise pass
                     double perc_len_diff = (double)ORF_len / (double)centroid_len;
 
                     if (perc_len_diff < len_diff_cutoff)
                     {
-                        break;
+                        continue;
                     }
 
-                    const auto centroid_seq = *std::get<4>(centroid_ID);
+                    cout << "Centroid: " << Centroid_ID_string << "\n" << centroid_seq << endl;
+                    cout << "Sequence: " << ORF_ID_string << "\n" << ORF_seq << endl;
+
+                    cout << "perc_len_diff: " << perc_len_diff << endl;
 
                     // calculate the perc_id between the current centroid and the ORF
                     double current_perc_id = align_seqs(centroid_seq, ORF_seq);
 
-                    cout << "Centroid: " << Centroid_ID_string << "\n" << centroid_seq << endl;
-                    cout << "Sequence: " << ORF_ID_string << "\n" << ORF_seq << endl;
                     cout << "identity: " << current_perc_id << endl;
 
                     // assign to all centroids with current_perc_id >= id_cutoff
