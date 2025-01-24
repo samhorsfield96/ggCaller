@@ -299,7 +299,6 @@ GraphTuple Graph::update (const std::string& graphfile,
     }
 
     // create vector bool for reference sequences
-    cout << "output reference files..." << endl;
     std::vector<bool> ref_list(nb_colours, false);
     for (int i = 0; i < _RefSet.size(); i++)
     {
@@ -391,6 +390,7 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
                                                                                             const float& score_tolerance,
                                                                                             const std::string& tmp_dir,
                                                                                             const std::string& path_dir,
+                                                                                            const std::string& prev_dir,
                                                                                             const bool update)
 {    
     // initilise map to hold file paths
@@ -458,7 +458,7 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
         {
             {
                 std::unordered_map<size_t, float> all_TIS_scores_std;
-                std::ifstream ifs(tmp_dir + "all_TIS_scores.tmp");
+                std::ifstream ifs(prev_dir + "all_TIS_scores.tmp");
                 boost::archive::text_iarchive ia(ifs);
                 ia >> all_TIS_scores_std;
 
@@ -469,7 +469,7 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
             }
             {
                 std::unordered_map<size_t, std::unordered_set<int>> start_chosen_std;
-                std::ifstream ifs(tmp_dir + "start_chosen.tmp");
+                std::ifstream ifs(prev_dir + "start_chosen.tmp");
                 boost::archive::text_iarchive ia(ifs);
                 ia >> start_chosen_std;
 
@@ -641,7 +641,7 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
         {
             {
                 std::unordered_map<size_t, float> all_ORF_scores_std;
-                std::ifstream ifs(tmp_dir + "all_ORF_scores.tmp");
+                std::ifstream ifs(prev_dir + "all_ORF_scores.tmp");
                 boost::archive::text_iarchive ia(ifs);
                 ia >> all_ORF_scores_std;
 
@@ -652,7 +652,7 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
             }
 
             // update centroid sequences from FASTA file
-            _read_centroids(tmp_dir + "centroid_seqs.fasta", centroid_map, overlap + 1);
+            _read_centroids(prev_dir + "centroid_seqs.fasta", centroid_map, overlap + 1);
         }
 
         // scope for clustering variables

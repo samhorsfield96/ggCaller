@@ -389,7 +389,7 @@ def main():
         start_codons_rev = ["CAT", "CAC", "CAA"]
         stop_codons_for = ["TAA", "TGA", "TAG"]
         stop_codons_rev = ["TTA", "TCA", "CTA"]
-
+    
     # initialise graph
     graph = ggCaller_cpp.Graph()
 
@@ -475,6 +475,15 @@ def main():
               "- A path to download the balrog gene model files.")
         sys.exit(1)
 
+    # check previous run exists
+    prev_ORFMap_dir = ""
+    if update:
+        prev_ORFMap_dir = os.path.join(options.prev_run, "ORF_dir")
+        prev_ORFMap_dir = os.path.join(prev_ORFMap_dir, "")
+        if not os.path.exists(prev_ORFMap_dir):
+            print(f"--prev-run {options.prev_run} does not exist.")
+            sys.exit(1)
+
     # unpack ORF pair into overlap dictionary and list for gene scoring
     input_colours, nb_colours, overlap, ref_list = graph_tuple
 
@@ -554,7 +563,7 @@ def main():
                                  TIS_model_file, options.min_orf_score, options.min_path_score,
                                  options.max_orf_orf_distance, not options.no_clustering,
                                  options.identity_cutoff, options.len_diff_cutoff, options.threads, cluster_file,
-                                 options.score_tolerance, ORFMap_dir, Path_dir, update)
+                                 options.score_tolerance, ORFMap_dir, Path_dir, prev_ORFMap_dir, update)
 
     ORF_file_paths, Edge_file_paths = file_tuple
 

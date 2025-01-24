@@ -157,6 +157,7 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> findGene
                                                                                     const float& score_tolerance,
                                                                                     const std::string& tmp_dir,
                                                                                     const std::string& path_dir,
+                                                                                    const std::string& prev_dir,
                                                                                     const bool update);
 
 
