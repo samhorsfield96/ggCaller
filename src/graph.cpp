@@ -1316,8 +1316,8 @@ void Graph::_read_centroids (const std::string& fasta_file,
         // test for sequence matching
         std::string centroid_seq = generate_sequence_nm(std::get<0>(centroid_map[header]), std::get<1>(centroid_map[header]), kmer - 1, _ccdbg, _KmerArray);
 
-        cout << "Original:\n" << sequence << endl;
         cout << "New:\n" << centroid_seq << endl;
+        cout << "Original:\n" << sequence << endl;
     }
 
     // destroy seq and fp objects
@@ -1394,22 +1394,45 @@ ORFNodeVector map_seq_to_graph(const std::string& sequence,
     // convert query to string for search in graph
     const char *sequence_str = sequence.c_str();
 
+    // keep track of node_id, start_pos and end_pos
+    int node_id = 0;
+    size_t start_pos = 0;
+    size_t end_pos = 0;
+
     for (KmerIterator it_km(sequence_str), it_km_end; it_km != it_km_end; ++it_km)
     {
         auto um = ccdbg.find(it_km->first);
 
-        // determine how sequence maps to 
-        const string unitig = um.mappedSequenceToString();
-        const int strandness = um.strand ? 1 : -1;
-        const size_t start_pos = um.dist;
-        const size_t end_pos = start_pos + um.len + kmer - 1;
-
         auto da = um.getData();
         const MyUnitigMap* um_data = da->getData(um);
 
-        // get orientation of node and id
-        int node_id = um_data->get_id() * strandness;
+        // determine how sequence maps to 
+        const string unitig = um.mappedSequenceToString();
+        size_t new_start_pos = um.dist;
+        size_t new_end_pos = new_start_pos + um.len + kmer - 2;
 
+        // get orientation of node and id
+        const int strandness = um.strand ? 1 : -1;
+        int new_node_id = um_data->get_id() * strandness;
+
+        if (new_node_id == node_id)
+        {
+            // same node, update ending position
+            end_pos = new_end_pos;
+        } else {
+            if (node_id != 0) { // new node traversed
+                node_vector.push_back(node_id);
+                pos_vector.push_back({start_pos, end_pos});
+            }
+            
+            node_id = new_node_id;
+            start_pos = new_start_pos;
+            end_pos = new_end_pos;
+        }
+    }
+
+    // add final entry
+    if (node_id != 0) {
         node_vector.push_back(node_id);
         pos_vector.push_back({start_pos, end_pos});
     }
