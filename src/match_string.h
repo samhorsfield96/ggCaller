@@ -13,10 +13,10 @@ std::pair<fm_index_coll, std::vector<size_t>> index_fasta(const std::string& fas
                                                           const bool write_idx,
                                                           const std::string& path_dir);
 
-std::pair<int, bool> seq_search(const std::string& query,
+std::vector<std::pair<int, bool>> seq_search(const std::string& query,
                                 const fm_index_coll& ref_idx);
 
-std::pair<ContigLoc, bool> get_ORF_coords(const std::string& query,
+std::vector<std::pair<ContigLoc, bool>> get_ORF_coords(const std::string& query,
                                           const fm_index_coll& fm_idx,
                                           const std::vector<size_t>& contig_locs);
 

@@ -341,9 +341,18 @@ def generate_GFF(graph, ORF_file_paths, input_colours, isolate_names, contig_ann
         # create data structure for each GFF entry
         GFF_entries = defaultdict(list)
         for i in range(len(contig_annotation[colour])):
-            GFF_entries[ORF_coords[i][0][0]].append((contig_annotation[colour][i][0],
-                                                     (ORF_coords[i][0][1], ORF_coords[i][1]),
-                                                     contig_annotation[colour][i][1]))
+            # iterate over each entry for each gene
+            num_orthologues = len(ORF_coords[i])
+            count = 0
+            for ORF_entry in ORF_coords[i]:
+                strand = ORF_entry[1]
+                contig = ORF_entry[0][0]
+                coords = ORF_entry[0][1]
+                gene_id = contig_annotation[colour][i][0] if num_orthologues == 1 else str(contig_annotation[colour][i][0]) + "_" + str(count)
+                GFF_entries[contig].append((gene_id,
+                                                (coords, strand),
+                                                contig_annotation[colour][i][1]))
+                count += 1
 
         # check if FASTA is gzipped
         gzipped = False

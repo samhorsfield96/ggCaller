@@ -1259,7 +1259,7 @@ std::tuple<std::vector<std::string>, int, std::vector<std::unordered_set<int>>> 
     return {input_colours, kmer, query_nodes};
 }
 
-std::vector<std::pair<ContigLoc, bool>> Graph::ORF_location(const std::vector<std::pair<std::vector<int>, std::vector<indexPair>>>& ORF_IDs,
+std::vector<std::vector<std::pair<ContigLoc, bool>>> Graph::ORF_location(const std::vector<std::pair<std::vector<int>, std::vector<indexPair>>>& ORF_IDs,
                                                             const std::string& fasta_file,
                                                             const int overlap,
                                                             const bool write_idx,
@@ -1276,7 +1276,7 @@ std::vector<std::pair<ContigLoc, bool>> Graph::ORF_location(const std::vector<st
     omp_set_num_threads(num_threads);
 
     // initialise return vector
-    std::vector<std::pair<ContigLoc, bool>> ORF_coords(ORF_IDs.size());
+    std::vector<std::vector<std::pair<ContigLoc, bool>>> ORF_coords(ORF_IDs.size());
 
     // get the FM_index
     const auto fm_index = index_fasta(fasta_file, write_idx, path_dir);
