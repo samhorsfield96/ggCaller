@@ -824,6 +824,10 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
             {
                 std::ofstream outfile(tmp_dir + "centroid_seqs.fasta", std::ios::out);
 
+                // remove identical centroid sequences caused by
+                // large nodes containing many sequences
+                robin_hood::unordered_set<std::string> prev_centroids;
+
                 // assing placeholder headers for centroids
                 int centroid_ID = 0;
                 for (const auto& entry : centroid_map) {
@@ -831,6 +835,14 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
                     //const std::string& header = entry.first;
                     const auto& ORF_info = entry.second;
                     const std::string sequence = generate_sequence_nm(std::get<0>(ORF_info), std::get<1>(ORF_info), overlap, _ccdbg, _KmerArray);
+
+                    // translate and ensure not already written, otherwise skip
+                    const auto ORF_aa = translate(sequence).substr(1,(sequence.size() / 3) - 2);
+                    if (prev_centroids.find(ORF_aa) != prev_centroids.end())
+                    {
+                        continue;
+                    }
+                    prev_centroids.insert(ORF_aa);
 
                     // Write the header
                     outfile << ">" << header << "\n";
