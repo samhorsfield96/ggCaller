@@ -269,7 +269,7 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
     robin_hood::unordered_map<std::string, std::string> old_clusters;
 
     // previous mappings
-    robin_hood::unordered_map<std::string, std::string> prev_mappings;
+    //robin_hood::unordered_map<std::string, std::string> prev_mappings;
 
     // iterate over ORF_length_list, pulling out centroids and their assigned clustered ORFs
     for (size_t i = 0; i < ORF_length_list.size(); i++)
@@ -299,7 +299,7 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
 
             // add the centroid to the cluster_assigned set
             cluster_assigned.insert(ORF_ID_str);
-            prev_mappings[ORF_ID_str] = ORF_ID_str;
+            //prev_mappings[ORF_ID_str] = ORF_ID_str;
 
             // add rest of homologs to centroid entry
             for (const auto& homolog_ID : CentroidToORFMap.at(ORF_ID_str))
@@ -317,7 +317,7 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
 
                     //cout << "current centroid: " << ORF_ID_str << " sequence: " << homolog_ID_str << endl;
                     cluster_assigned.insert(homolog_ID_str);
-                    prev_mappings[homolog_ID_str] = ORF_ID_str;
+                    //prev_mappings[homolog_ID_str] = ORF_ID_str;
                 }
                 // if homolog already assigned to a cluster, skip
                 else
@@ -361,7 +361,7 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
         {
             final_clusters[ORF_ID_str].push_back(ORF_ID);
             //cout << "new centroid: " << ORF_ID_str << " sequence: " << ORF_ID_str << endl;
-            prev_mappings[ORF_ID_str] = ORF_ID_str;
+            //prev_mappings[ORF_ID_str] = ORF_ID_str;
             cluster_assigned.insert(ORF_ID_str);
 
             // add to old clusters if necessary
