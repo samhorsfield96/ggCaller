@@ -647,7 +647,7 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
 
                 for (auto& entry : all_ORF_scores_std)
                 {
-                    cout << "hash: " << entry.first << " score: " << entry.second << endl;
+                    //cout << "hash: " << entry.first << " score: " << entry.second << endl;
                     all_ORF_scores[std::move(entry.first)] = std::move(entry.second);
                 }
             }
@@ -723,7 +723,7 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
                         {
                             // get old centroid ID
                             const auto& old_centroid_ID = clusters_with_old->second;
-                            cout << "cent_ID: " << old_centroid_ID << endl;
+                            //cout << "cent_ID: " << old_centroid_ID << endl;
                             auto& old_centroid_info = centroid_map.at(old_centroid_ID);
                             
                             // get score
@@ -731,10 +731,10 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
                             const auto ORF_aa = translate(old_centroid_seq).substr(1,(old_centroid_seq.size() / 3) - 2);
                             const auto ORF_hash = hasher{}(ORF_aa);
                             
-                            cout << "Current_cent: " << ORF_ID_str << "\nseq: " << centroid_seq << endl;
-                            cout << "Prev_cent: " << old_centroid_ID << "\nseq: " << old_centroid_seq << endl;
-                            cout << "Prev_cent_aa: " << old_centroid_ID << "\nseq: " << ORF_aa << endl;
-                            cout << "Prev_cent_aa_hash: " << ORF_hash << endl;                            
+                            // cout << "Current_cent: " << ORF_ID_str << "\nseq: " << centroid_seq << endl;
+                            // cout << "Prev_cent: " << old_centroid_ID << "\nseq: " << old_centroid_seq << endl;
+                            // cout << "Prev_cent_aa: " << old_centroid_ID << "\nseq: " << ORF_aa << endl;
+                            // cout << "Prev_cent_aa_hash: " << ORF_hash << endl;                            
 
                             gene_prob = all_ORF_scores.at(ORF_hash);
 
@@ -775,7 +775,7 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
                         {
                             // get old centroid ID
                             const auto& old_centroid_ID = clusters_with_old->second;
-                            cout << "cent_ID: " << old_centroid_ID << endl;
+                            //cout << "cent_ID: " << old_centroid_ID << endl;
                             auto& old_centroid_info = centroid_map.at(old_centroid_ID);
                             
                             // get score
@@ -783,9 +783,9 @@ std::pair<std::map<size_t, std::string>, std::map<size_t, std::string>> Graph::f
                             const auto ORF_aa = translate(old_centroid_seq).substr(1,(old_centroid_seq.size() / 3) - 2);
                             const auto ORF_hash = hasher{}(ORF_aa);
 
-                            cout << "non-centroid Prev_cent: " << old_centroid_ID << "\nseq: " << old_centroid_seq << endl;
-                            cout << "non-centroid Prev_cent_aa: " << old_centroid_ID << "\nseq: " << ORF_aa << endl;
-                            cout << "Prev_cent_aa_hash: " << ORF_hash << endl;    
+                            // cout << "non-centroid Prev_cent: " << old_centroid_ID << "\nseq: " << old_centroid_seq << endl;
+                            // cout << "non-centroid Prev_cent_aa: " << old_centroid_ID << "\nseq: " << ORF_aa << endl;
+                            // cout << "Prev_cent_aa_hash: " << ORF_hash << endl;    
                             const float gene_prob = all_ORF_scores.at(ORF_hash);
                             
                             // update ORFToScoreMap if prob not already present
@@ -1337,13 +1337,13 @@ void Graph::_read_centroids (const std::string& fasta_file,
         centroid_map[header] = map_seq_to_graph(sequence, _ccdbg, kmer);
 
         // test for sequence matching
-        std::string centroid_seq = generate_sequence_nm(std::get<0>(centroid_map[header]), std::get<1>(centroid_map[header]), kmer - 1, _ccdbg, _KmerArray);
+        // std::string centroid_seq = generate_sequence_nm(std::get<0>(centroid_map[header]), std::get<1>(centroid_map[header]), kmer - 1, _ccdbg, _KmerArray);
 
-        if (centroid_seq != sequence)
-        {
-            cout << "New:\n" << centroid_seq << endl;
-            cout << "Original:\n" << sequence << endl;
-        }
+        // if (centroid_seq != sequence)
+        // {
+        //     cout << "New:\n" << centroid_seq << endl;
+        //     cout << "Original:\n" << sequence << endl;
+        // }
     }
 
     // destroy seq and fp objects

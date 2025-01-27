@@ -219,10 +219,10 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
                     // check that perc_len_diff is greater than cut-off, otherwise pass
                     double perc_len_diff = (double)ORF_len / (double)centroid_len;
 
-                    cout << "Centroid: " << Centroid_ID_string << "\n" << centroid_seq << endl;
-                    cout << "Sequence: " << ORF_ID_string << "\n" << ORF_seq << endl;
+                    // cout << "Centroid: " << Centroid_ID_string << "\n" << centroid_seq << endl;
+                    // cout << "Sequence: " << ORF_ID_string << "\n" << ORF_seq << endl;
 
-                    cout << "perc_len_diff: " << perc_len_diff << endl;
+                    // cout << "perc_len_diff: " << perc_len_diff << endl;
 
                     if (perc_len_diff < len_diff_cutoff)
                     {
@@ -232,7 +232,7 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
                     // calculate the perc_id between the current centroid and the ORF
                     double current_perc_id = align_seqs(centroid_seq, ORF_seq);
 
-                    cout << "identity: " << current_perc_id << endl;
+                    // cout << "identity: " << current_perc_id << endl;
 
                     // assign to all centroids with current_perc_id >= id_cutoff
                     if (current_perc_id >= id_cutoff)
@@ -287,7 +287,7 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
 
         if (cluster_assigned.find(ORF_ID_str) != cluster_assigned.end())
         {
-            cout << "already assigned: " << ORF_ID_str << " to " << prev_mappings[ORF_ID_str] << endl;
+            //cout << "already assigned: " << ORF_ID_str << " to " << prev_mappings[ORF_ID_str] << endl;
             continue;
         }
 
@@ -315,14 +315,14 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
                 {
                     final_clusters[ORF_ID_str].push_back(homolog_ID);
 
-                    cout << "current centroid: " << ORF_ID_str << " sequence: " << homolog_ID_str << endl;
+                    //cout << "current centroid: " << ORF_ID_str << " sequence: " << homolog_ID_str << endl;
                     cluster_assigned.insert(homolog_ID_str);
                     prev_mappings[homolog_ID_str] = ORF_ID_str;
                 }
                 // if homolog already assigned to a cluster, skip
                 else
                 {
-                    cout << "previously assigned: " << homolog_ID_str << " to " << prev_mappings[homolog_ID_str] << endl;
+                    //cout << "previously assigned: " << homolog_ID_str << " to " << prev_mappings[homolog_ID_str] << endl;
                     continue;
                 }
             }
@@ -346,7 +346,7 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
                 std::string homolog_ID_str = std::to_string(entry.first) + "_" + std::to_string(entry.second);
                 old_clusters[homolog_ID_str] = ORF_ID_str;
 
-                cout << "old centroid: " << ORF_ID_str << " sequence: " << homolog_ID_str << endl;
+                //cout << "old centroid: " << ORF_ID_str << " sequence: " << homolog_ID_str << endl;
             }
         }
     }
@@ -360,7 +360,7 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
         if (cluster_assigned.find(ORF_ID_str) == cluster_assigned.end())
         {
             final_clusters[ORF_ID_str].push_back(ORF_ID);
-            cout << "new centroid: " << ORF_ID_str << " sequence: " << ORF_ID_str << endl;
+            //cout << "new centroid: " << ORF_ID_str << " sequence: " << ORF_ID_str << endl;
             prev_mappings[ORF_ID_str] = ORF_ID_str;
             cluster_assigned.insert(ORF_ID_str);
 
@@ -368,7 +368,7 @@ std::pair<ORFClusterMap, robin_hood::unordered_map<std::string, std::string>> pr
             if (ORF_ID.first == -1)
             {
                 old_clusters[ORF_ID_str] = ORF_ID_str;
-                cout << "old centroid: " << ORF_ID_str << " sequence: " << ORF_ID_str << endl;
+                //cout << "old centroid: " << ORF_ID_str << " sequence: " << ORF_ID_str << endl;
             }
         }
     }
