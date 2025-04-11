@@ -44,8 +44,8 @@ std::pair<fm_index_coll, std::vector<size_t>> index_fasta(const std::string& fas
         while ((l = kseq_read(seq)) >= 0)
         {
             reference_seq += seq->seq.s;
-            contig_locs.push_back(reference_seq.size());
             reference_seq += ",";
+            contig_locs.push_back(reference_seq.size());
         }
 
         // destroy seq and fp objects
@@ -144,7 +144,7 @@ std::vector<std::pair<ContigLoc, bool>> get_ORF_coords(const std::string& query,
                 } else
                 {
                     size_t relative_loc = (query_loc - contig_locs.at(i - 1));
-                    contig_loc = {i + 1, {relative_loc, relative_loc + (query.size() - 1)}};
+                    contig_loc = {i + 1, {relative_loc, relative_loc + query.size()}};
                 }
                 break;
             }
